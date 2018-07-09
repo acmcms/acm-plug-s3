@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings>
+	<type>PLAIN</type>
+	<title>XSTORE S3 storage plugin manual</title>
+	<!-- hidden: abstract means 'cannot be instantiated' -->
+	<abstract>true</abstract>
+	<charset>UTF-8</charset>
+	
+	<default>plugin-xstore.s3.html</default>
+	
+	<prototype>skin-standard-html</prototype>
+	
+	<renderer>
+		<type>ACM.TPL</type>
+		<suffix>.tpl</suffix>
+	</renderer>
+</settings>

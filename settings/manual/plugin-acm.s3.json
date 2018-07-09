@@ -1,0 +1,7 @@
+{
+	type : "ae3.Manual",
+	title : "ACMCMS: plugin: s3",
+	name : "plugin-acm.s3",
+	group : "acm-plugin",
+	url : "/!/skin/skin-ae3.plug.xstore.s3/",
+}
