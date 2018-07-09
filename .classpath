@@ -2,9 +2,9 @@
 <classpath>
 	<classpathentry kind="src" path="java"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/acm.base"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/acm-base-api"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ae3.api"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ae3.sdk"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/acm.boot"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/acm-base-sdk"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
