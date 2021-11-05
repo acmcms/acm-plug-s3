@@ -78,7 +78,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 	private static final int STATE_PUBLISH;
 	
 	static {
-		COMPARATOR_ALPHABET = new Comparator<LinkData>() {
+		COMPARATOR_ALPHABET = new Comparator<>() {
 
 			@Override
 			public int compare(final LinkData o1, final LinkData o2) {

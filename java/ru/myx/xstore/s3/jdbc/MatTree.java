@@ -24,7 +24,7 @@ final class MatTree {
 				if (rs.next()) {
 					final List<Object> result = new ArrayList<>();
 					do {
-						result.add(new Integer(rs.getInt(1)));
+						result.add(Integer.valueOf(rs.getInt(1)));
 						result.add(rs.getString(2));
 					} while (rs.next());
 					return result;
@@ -42,7 +42,7 @@ final class MatTree {
 				if (rs.next()) {
 					final List<Object> result = new ArrayList<>();
 					do {
-						result.add(new Integer(rs.getInt(1)));
+						result.add(Integer.valueOf(rs.getInt(1)));
 						result.add(rs.getString(2));
 					} while (rs.next());
 					return result;

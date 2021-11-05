@@ -11,36 +11,46 @@ import ru.myx.ae3.act.Context;
 import ru.myx.ae3.base.BaseObject;
 import ru.myx.ae3.exec.Exec;
 import ru.myx.ae3.report.Report;
+import ru.myx.util.WeakFinalizer;
 import ru.myx.xstore.s3.concept.InvalidationCollector;
 import ru.myx.xstore.s3.concept.InvalidationEventType;
 import ru.myx.xstore.s3.concept.LinkData;
 import ru.myx.xstore.s3.concept.Transaction;
 
 final class TransactionJdbc implements Transaction {
-
+	
+	private static void finalizeStatic(final TransactionJdbc x) {
+		
+		x.rollback();
+	}
+	
 	private final long started;
-
+	
 	private boolean closed = false;
-
+	
 	private final Connection conn;
-
+	
 	private InvalidationCollector invalidations = null;
-
+	
 	private final Object issuer;
-
+	
 	private final ServerJdbc server;
-
+	
+	{
+		WeakFinalizer.register(this, TransactionJdbc::finalizeStatic);
+	}
+	
 	TransactionJdbc(final ServerJdbc server, final Connection conn, final Object issuer) {
-
+		
 		this.server = server;
 		this.conn = conn;
 		this.issuer = issuer;
 		this.started = System.currentTimeMillis();
 	}
-
+	
 	@Override
 	public final void aliases(final String lnkId, final Set<String> added, final Set<String> removed) throws Throwable {
-
+		
 		if (removed != null) {
 			for (final String alias : removed) {
 				this.invalidateUpdateIden(alias);
@@ -53,10 +63,10 @@ final class TransactionJdbc implements Transaction {
 		}
 		MatAlias.update(this.conn, lnkId, added, removed);
 	}
-
+	
 	@Override
 	public final void commit() {
-
+		
 		if (this.closed) {
 			return;
 		}
@@ -84,7 +94,7 @@ final class TransactionJdbc implements Transaction {
 			this.server.stsTransactionTime.register(System.currentTimeMillis() - this.started);
 		}
 	}
-
+	
 	@Override
 	public final void create(final boolean local,
 			final String ctnLnkId,
@@ -101,7 +111,7 @@ final class TransactionJdbc implements Transaction {
 			final String vrId,
 			final String vrComment,
 			final BaseObject vrData) throws Throwable {
-
+		
 		this.invalidateUpdateLink(lnkId);
 		this.invalidateUpdateTree(ctnLnkId);
 		this.invalidateUpdateIden(objId);
@@ -126,10 +136,10 @@ final class TransactionJdbc implements Transaction {
 				lnkId,
 				-1);
 	}
-
+	
 	@Override
 	public final void delete(final LinkData link, final boolean soft) throws Throwable {
-
+		
 		final Collection<LinkData> links = MatLink.searchLinks(this.conn, link.objId, true);
 		if (links == null) {
 			throw new IllegalStateException("Cannot delete non existent object from storage! Should I be just a warning entry in a log file?");
@@ -153,16 +163,9 @@ final class TransactionJdbc implements Transaction {
 			}
 		}
 	}
-
-	@Override
-	protected final void finalize() throws Throwable {
-
-		super.finalize();
-		this.rollback();
-	}
-
+	
 	private final void invalidateDeleteLink(final String lnkId) {
-
+		
 		if (lnkId == null) {
 			throw new NullPointerException("Null argument!");
 		}
@@ -171,9 +174,9 @@ final class TransactionJdbc implements Transaction {
 		}
 		this.invalidations.add(InvalidationEventType.DLINK, lnkId);
 	}
-
+	
 	private final void invalidateUpdateIden(final String lnkId) {
-
+		
 		if (lnkId == null) {
 			throw new NullPointerException("Null argument!");
 		}
@@ -182,9 +185,9 @@ final class TransactionJdbc implements Transaction {
 		}
 		this.invalidations.add(InvalidationEventType.UIDEN, lnkId);
 	}
-
+	
 	private final void invalidateUpdateLink(final String lnkId) {
-
+		
 		if (lnkId == null) {
 			throw new NullPointerException("Null argument!");
 		}
@@ -193,9 +196,9 @@ final class TransactionJdbc implements Transaction {
 		}
 		this.invalidations.add(InvalidationEventType.ULINK, lnkId);
 	}
-
+	
 	private final void invalidateUpdateTree(final String lnkId) {
-
+		
 		if (lnkId == null) {
 			throw new NullPointerException("Null argument!");
 		}
@@ -204,10 +207,10 @@ final class TransactionJdbc implements Transaction {
 		}
 		this.invalidations.add(InvalidationEventType.UTREE, lnkId);
 	}
-
+	
 	@Override
 	public final void link(final boolean local, final String ctnLnkId, final String lnkId, final String name, final boolean folder, final String objId) throws Throwable {
-
+		
 		this.invalidateUpdateTree(ctnLnkId);
 		this.invalidateUpdateIden(objId);
 		this.invalidateUpdateLink(lnkId);
@@ -228,10 +231,10 @@ final class TransactionJdbc implements Transaction {
 				lnkId,
 				-1);
 	}
-
+	
 	@Override
 	public final void move(final LinkData link, final String cntLnkId, final String key) throws Throwable {
-
+		
 		this.invalidateUpdateLink(link.lnkId);
 		this.invalidateUpdateTree(link.lnkCntId);
 		this.invalidateUpdateIden(link.objId);
@@ -239,32 +242,32 @@ final class TransactionJdbc implements Transaction {
 		MatLink.move(this.conn, link.lnkCntId, link.lnkName, cntLnkId, key);
 		MatChange.serialize(this.server, this.conn, 0, "update", link.lnkId, link.lnkLuid);
 	}
-
+	
 	@Override
 	public final void record(final String linkedIdentity) throws Throwable {
-
+		
 		MatHistory.record(this.conn, linkedIdentity);
 	}
-
+	
 	@Override
 	public final void rename(final LinkData link, final String key) throws Throwable {
-
+		
 		this.invalidateUpdateLink(link.lnkId);
 		this.invalidateUpdateTree(link.lnkCntId);
 		MatLink.rename(this.conn, link.lnkCntId, link.lnkName, key);
 		MatChange.serialize(this.server, this.conn, 0, "update", link.lnkId, link.lnkLuid);
 	}
-
+	
 	@Override
 	public final void resync(final String lnkId) throws Throwable {
-
+		
 		MatChange.serialize(this.server, this.conn, 0, "resync", lnkId, -1);
 	}
-
+	
 	@Override
 	public final void revert(final LinkData link, final String historyId, final boolean folder, final long created, final int state, final String title, final String typeName)
 			throws Throwable {
-
+		
 		this.invalidateUpdateLink(link.lnkId);
 		this.invalidateUpdateTree(link.lnkCntId);
 		this.invalidateUpdateIden(link.objId);
@@ -296,7 +299,7 @@ final class TransactionJdbc implements Transaction {
 				null);
 		MatChange.serialize(this.server, this.conn, 0, "update-all", link.objId, link.lnkLuid);
 	}
-
+	
 	@Override
 	public final void revert(final LinkData link,
 			final String historyId,
@@ -307,7 +310,7 @@ final class TransactionJdbc implements Transaction {
 			final String typeName,
 			final BaseObject removed,
 			final BaseObject added) throws Throwable {
-
+		
 		this.invalidateUpdateLink(link.lnkId);
 		this.invalidateUpdateTree(link.lnkCntId);
 		this.invalidateUpdateIden(link.objId);
@@ -347,10 +350,10 @@ final class TransactionJdbc implements Transaction {
 				added);
 		MatChange.serialize(this.server, this.conn, 0, "update-all", link.objId, link.lnkLuid);
 	}
-
+	
 	@Override
 	public final void rollback() {
-
+		
 		if (this.closed) {
 			return;
 		}
@@ -378,10 +381,10 @@ final class TransactionJdbc implements Transaction {
 			this.server.stsTransactionTime.register(System.currentTimeMillis() - this.started);
 		}
 	}
-
+	
 	@Override
 	public final void segregate(final String guid, final String linkedIdentityOld, final String linkedIdentityNew) throws Throwable {
-
+		
 		this.invalidateUpdateLink(guid);
 		this.invalidateUpdateIden(linkedIdentityNew);
 		this.invalidateUpdateIden(linkedIdentityOld);
@@ -410,16 +413,16 @@ final class TransactionJdbc implements Transaction {
 			ps.executeUpdate();
 		}
 	}
-
+	
 	@Override
 	public final String toString() {
-
+		
 		return "Transaction jdbc{srv=" + this.server + "}";
 	}
-
+	
 	@Override
 	public final void unlink(final LinkData link, final boolean soft) throws Throwable {
-
+		
 		this.invalidateDeleteLink(link.lnkId);
 		if (link.lnkCntId != null) {
 			this.invalidateUpdateTree(link.lnkCntId);
@@ -442,10 +445,10 @@ final class TransactionJdbc implements Transaction {
 			MatChange.serialize(this.server, this.conn, 15, "clean-start", link.lnkId, link.lnkLuid);
 		}
 	}
-
+	
 	@Override
 	public final void update(final LinkData link, final String objId) throws Throwable {
-
+		
 		this.invalidateUpdateLink(link.lnkId);
 		this.invalidateUpdateTree(link.lnkCntId);
 		this.invalidateUpdateIden(objId);
@@ -461,7 +464,7 @@ final class TransactionJdbc implements Transaction {
 		}
 		MatChange.serialize(this.server, this.conn, 0, "update", link.lnkId, link.lnkLuid);
 	}
-
+	
 	@Override
 	public final void update(final LinkData link,
 			final String objId,
@@ -472,7 +475,7 @@ final class TransactionJdbc implements Transaction {
 			final String title,
 			final String typeName,
 			final boolean ownership) throws Throwable {
-
+		
 		this.invalidateUpdateIden(objId);
 		MatData.update(
 				this.conn,
@@ -504,7 +507,7 @@ final class TransactionJdbc implements Transaction {
 		Report.info("S3-TRANSACTION", "update short: type=" + typeName);
 		MatChange.serialize(this.server, this.conn, 0, "update-all", objId, link.lnkLuid);
 	}
-
+	
 	@Override
 	public final void update(final LinkData link,
 			final String objId,
@@ -517,14 +520,14 @@ final class TransactionJdbc implements Transaction {
 			final boolean ownership,
 			final BaseObject removed,
 			final BaseObject added) throws Throwable {
-
+		
 		Map<String, String> extraRemoved = null;
 		if (removed != null) {
 			extraRemoved = Differer.getExtraRemoved(removed, this.issuer);
 		}
 		Map<String, String> extraExisting = null;
 		if (added != null) {
-
+			
 			extraExisting = Differer.getExtraDiff(extraExisting, added, "", this.issuer);
 		}
 		this.invalidateUpdateIden(objId);
@@ -564,13 +567,13 @@ final class TransactionJdbc implements Transaction {
 		Report.info("S3-TRANSACTION", "update full: type=" + typeName + ", name=" + link.lnkName);
 		MatChange.serialize(this.server, this.conn, 0, "update-all", objId, link.lnkLuid);
 	}
-
+	
 	@Override
 	public final void versionClearAll(final String objId) throws Throwable {
-
+		
 		MatVersion.clear(this.conn, objId);
 	}
-
+	
 	@Override
 	public final void versionCreate(final String vrId,
 			final String vrParentId,
@@ -580,16 +583,16 @@ final class TransactionJdbc implements Transaction {
 			final String typeName,
 			final String owner,
 			final BaseObject vrData) throws Throwable {
-
+		
 		final Map<String, String> versionExtra = Differer.getExtraDiff(null, vrData, "", this.issuer);
 		MatVersion.serializeCreate(this.server, this.conn, vrId, vrParentId, vrComment, objId, title, owner, typeName, versionExtra, vrData);
 	}
-
+	
 	@Override
 	public final void
 			versionStart(final String vrId, final String vrComment, final String objId, final String title, final String typeName, final String owner, final BaseObject vrData)
 					throws Throwable {
-
+		
 		this.versionCreate(vrId, "*", vrComment, objId, title, typeName, owner, vrData);
 	}
 }
