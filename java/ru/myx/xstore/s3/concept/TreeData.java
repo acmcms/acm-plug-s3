@@ -656,8 +656,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 	 */
 	private Map<String, String> treeNames;
 
-	/** @param lnkId
-	 */
+	/** @param lnkId */
 	public TreeData(final String lnkId) {
 
 		this.lnkId = lnkId;
@@ -666,8 +665,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 	/** @param lnkId
 	 * @param treeEntries
 	 * @param allFiles
-	 * @param allFolders
-	 */
+	 * @param allFolders */
 	public TreeData(final String lnkId, final LinkData[] treeEntries, final boolean allFiles, final boolean allFolders) {
 
 		this.lnkId = lnkId;
@@ -814,7 +812,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		if (this.tree == TreeData.ENTRY_ARRAY_EMPTY) {
 			return null;
 		}
-		if (sort == null || sort.trim().length() == 0) {
+		if (sort == null || sort.isBlank()) {
 			return TreeData.searchLocalJava(limit, -1L, -1L, true, true, this.internGetEntriesHistory(), true);
 		}
 		final Comparator<LinkData> order = TreeData.getListingSort(sort);
@@ -856,7 +854,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		if (this.tree == TreeData.ENTRY_ARRAY_EMPTY) {
 			return null;
 		}
-		if (sort == null || sort.trim().length() == 0) {
+		if (sort == null || sort.isBlank()) {
 			return TreeData.searchLocalJava(limit, -1L, -1L, false, true, this.internGetEntriesHistory(), true);
 		}
 		final Comparator<LinkData> order = TreeData.getListingSort(sort);
@@ -898,7 +896,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		if (this.tree == TreeData.ENTRY_ARRAY_EMPTY) {
 			return null;
 		}
-		if (sort == null || sort.trim().length() == 0) {
+		if (sort == null || sort.isBlank()) {
 			return TreeData.searchLocalJava(limit, -1L, -1L, true, true, this.internGetFilesHistory(), true);
 		}
 		final Comparator<LinkData> order = TreeData.getListingSort(sort);
@@ -940,7 +938,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		if (this.tree == TreeData.ENTRY_ARRAY_EMPTY) {
 			return null;
 		}
-		if (sort == null || sort.trim().length() == 0) {
+		if (sort == null || sort.isBlank()) {
 			return TreeData.searchLocalJava(limit, -1L, -1L, false, true, this.internGetFilesHistory(), true);
 		}
 		final Comparator<LinkData> order = TreeData.getListingSort(sort);
@@ -1183,7 +1181,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		} else {
 			throw new IllegalStateException("Shouldn't be here!");
 		}
-		if (query == null || query.trim().length() == 0) {
+		if (query == null || query.isBlank()) {
 			return TreeData.searchLocalJava(limit, startDate, endDate, true, all, filterSource, filterAscending);
 		}
 		final List<LinkData> local = new ArrayList<>(filterSource.length);
@@ -1300,7 +1298,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		} else {
 			throw new IllegalStateException("Shouldn't be here!");
 		}
-		if (query == null || query.trim().length() == 0) {
+		if (query == null || query.isBlank()) {
 			return TreeData.searchLocalAlphabetJava(limit, all, alphabetConversion, defaultLetter, filterLetter, filterSource, filterAscending);
 		}
 		final List<LinkData> local = new ArrayList<>(filterSource.length);
@@ -1374,7 +1372,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		if (this.tree == TreeData.ENTRY_ARRAY_EMPTY) {
 			return null;
 		}
-		if (query == null || query.trim().length() == 0) {
+		if (query == null || query.isBlank()) {
 			if (all) {
 				return TreeData.searchLocalFillAlphabetStatsJava(this.tree, true, alphabetConversion, defaultLetter);
 			}
@@ -1416,7 +1414,7 @@ public class TreeData extends RequestAttachment<TreeData, RunnerTreeLoader> {
 		if (this.tree == TreeData.ENTRY_ARRAY_EMPTY) {
 			return null;
 		}
-		if (query == null || query.trim().length() == 0) {
+		if (query == null || query.isBlank()) {
 			if (!all && startDate == -1L && endDate == -1L) {
 				if (this.calendarSearchable == null) {
 					synchronized (this.tree) {
