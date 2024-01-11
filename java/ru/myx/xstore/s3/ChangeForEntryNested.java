@@ -28,72 +28,70 @@ import ru.myx.ae3.exec.Exec;
 import ru.myx.ae3.help.Create;
 import ru.myx.xstore.s3.concept.Transaction;
 
-/**
- * @author myx
- * 
+/** @author myx
+ *
  *         To change the template for this generated type comment go to
- *         Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments
- */
+ *         Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments */
 class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
-	
-	
+
 	private Set<String> aliasAdd = null;
-	
+
 	private Set<String> aliasRemove = null;
-	
+
 	BaseSchedule changeSchedule = null;
-	
+
 	BaseSync changeSync = null;
-	
+
 	private List<ChangeNested> children = null;
-	
+
 	private boolean commitActive = false;
-	
+
 	private boolean commitLogged = false;
-	
+
 	private boolean commitUseVersionning = false;
-	
+
 	private final BaseObject data;
-	
+
 	private final EntryImpl entry;
-	
+
 	private long initialCreated;
-	
+
 	private boolean initialFolder;
-	
+
 	private String initialKey;
-	
+
 	private final String initialParentGuid;
-	
+
 	private int initialState;
-	
+
 	private String initialTitle;
-	
+
 	private String initialTypeName;
-	
+
 	private final String initialVersionId;
-	
+
 	private final boolean initialVersioning;
-	
+
 	private final BaseObject original;
-	
+
 	private String parentGuid;
-	
+
 	private boolean segregate = false;
-	
+
 	private final StorageLevel3 storage;
-	
+
 	private final List<ChangeNested> target;
-	
+
 	private String versionId;
-	
+
 	private Set<String> linkedIn = null;
-	
+
 	private boolean local = false;
-	
+
 	private boolean touch = false;
-	
+
 	ChangeForEntryNested(final List<ChangeNested> target, final StorageLevel3 storage, final EntryImpl entry) {
+
 		this.target = target;
 		this.storage = storage;
 		this.entry = entry;
@@ -120,11 +118,10 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 		this.data.baseDefine("$type", this.initialTypeName);
 		this.data.baseDefine("$created", Base.forDateMillis(this.initialCreated));
 	}
-	
+
 	@Override
 	public void aliasAdd(final String alias) {
-		
-		
+
 		if (this.aliasAdd == null) {
 			this.aliasAdd = Create.tempSet();
 		}
@@ -133,11 +130,10 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 			this.aliasRemove.remove(alias);
 		}
 	}
-	
+
 	@Override
 	public void aliasRemove(final String alias) {
-		
-		
+
 		if (this.aliasRemove == null) {
 			this.aliasRemove = Create.tempSet();
 		}
@@ -146,18 +142,16 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 			this.aliasAdd.remove(alias);
 		}
 	}
-	
+
 	@Override
 	public void commit() {
-		
-		
+
 		this.target.add(this);
 	}
-	
+
 	@Override
 	public BaseChange createChange(final BaseEntry<?> entry) {
-		
-		
+
 		if (entry == null) {
 			return null;
 		}
@@ -176,8 +170,7 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 	
 	@Override
 	public BaseChange createChild() {
-		
-		
+
 		if (this.children == null) {
 			synchronized (this) {
 				if (this.children == null) {
@@ -187,46 +180,40 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 		}
 		return new ChangeForNewNested(this, this.children, this.storage, Engine.createGuid());
 	}
-	
+
 	@Override
 	public final void delete() {
-		
-		
+
 		this.delete(false);
 	}
-	
+
 	@Override
 	public final void delete(final boolean soft) {
-		
-		
+
 		this.target.add(new ChangeDoDelete(this.entry, soft));
 	}
-	
+
 	@Override
 	public BaseObject getData() {
-		
-		
+
 		return this.data;
 	}
-	
+
 	@Override
 	public String getGuid() {
-		
-		
+
 		return this.entry.getGuid();
 	}
-	
+
 	@Override
 	public BaseHistory[] getHistory() {
-		
-		
+
 		return this.entry.getHistory();
 	}
-	
+
 	@Override
 	public BaseChange getHistorySnapshot(final String historyId) {
-		
-		
+
 		final BaseEntry<?> entry = this.entry.getHistorySnapshot(historyId);
 		if (entry == null) {
 			return null;
@@ -240,18 +227,16 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 		}
 		return change;
 	}
-	
+
 	@Override
 	public String getLinkedIdentity() {
-		
-		
+
 		return this.entry.getLinkedIdentity();
 	}
-	
+
 	@Override
 	public final String getLocationControl() {
-		
-		
+
 		final StorageImpl parent = this.getStorageImpl();
 		if (this.getGuid().equals(parent.getStorage().getRootIdentifier())) {
 			return parent.getLocationControl();
@@ -272,74 +257,63 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 				? parentPath + '/' + this.getKey() + '/'
 				: parentPath + '/' + this.getKey();
 	}
-	
+
 	@Override
 	public BaseObject getParentalData() {
-		
-		
+
 		final BaseEntry<?> parent = this.entry.getParent();
 		return parent == null
 			? null
 			: parent.getData();
 	}
-	
+
 	@Override
 	public String getParentGuid() {
-		
-		
+
 		return this.entry.getParentGuid();
 	}
-	
+
 	@Override
 	protected StorageImpl getPlugin() {
-		
-		
+
 		return this.entry.getStorageImpl();
 	}
-	
+
 	@Override
 	public BaseSchedule getSchedule() {
-		
-		
+
 		return new AbstractSchedule(false, this.entry.getSchedule()) {
-			
-			
+
 			@Override
 			public void commit() {
-				
-				
+
 				ChangeForEntryNested.this.changeSchedule = this;
 			}
 		};
 	}
-	
+
 	@Override
 	public StorageImpl getStorageImpl() {
-		
-		
+
 		return this.entry.getStorageImpl();
 	}
-	
+
 	@Override
 	public BaseSync getSynchronization() {
-		
-		
+
 		return new AbstractSync(this.storage.getSynchronizer().createChange(this.getGuid())) {
-			
-			
+
 			@Override
 			public void commit() {
-				
-				
+
 				ChangeForEntryNested.this.changeSync = this;
 			}
 		};
 	}
-	
+
 	@Override
 	public BaseChange getVersion(final String versionId) {
-		
-		
+
 		final BaseEntry<?> entry = this.entry.getVersion(versionId);
 		if (entry == null) {
 			return null;
@@ -353,25 +327,43 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 		}
 		return change;
 	}
-	
+
 	@Override
 	public String getVersionId() {
-		
-		
+
 		return this.versionId;
 	}
-	
+
 	@Override
 	public BaseVersion[] getVersions() {
-		
-		
+
 		return this.entry.getVersions();
 	}
-	
+
+	@Override
+	public void nestUnlink(final BaseEntry<?> entry, final boolean soft) {
+		
+		if (entry == null) {
+			return;
+		}
+		if (entry.getClass() != EntryImpl.class || entry.getStorageImpl() != this.storage) {
+			entry.createChange().unlink(soft);
+			return;
+		}
+		if (this.children == null) {
+			synchronized (this) {
+				if (this.children == null) {
+					this.children = new ArrayList<>();
+				}
+			}
+		}
+		this.children.add(new ChangeDoDelete((EntryImpl) entry, soft));
+		return;
+	}
+
 	@Override
 	public boolean realCommit(final Transaction transaction) throws Throwable {
-		
-		
+
 		final boolean doClearVersions = this.initialVersioning && !this.getVersioning();
 		final boolean doStartVersions = this.getVersioning() && !this.initialVersioning;
 		final boolean doRecordHistory = this.commitLogged;
@@ -577,11 +569,10 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 		this.initialCreated = created;
 		return true;
 	}
-	
+
 	@Override
 	public final void resync() {
-		
-		
+
 		final Transaction transaction = this.storage.getServerNetwork().createTransaction();
 		try {
 			transaction.resync(this.getGuid());
@@ -597,80 +588,70 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 			throw new RuntimeException(t);
 		}
 	}
-	
+
 	@Override
 	public final void segregate() {
-		
-		
+
 		this.segregate = true;
 	}
-	
+
 	@Override
 	public void setCommitActive() {
-		
-		
+
 		this.commitActive = true;
 	}
-	
+
 	@Override
 	public void setCommitLogged() {
-		
-		
+
 		this.commitLogged = true;
 		this.commitUseVersionning = true;
 	}
-	
+
 	@Override
 	public void setCreateLinkedIn(final BaseEntry<?> folder) {
-		
-		
+
 		if (this.linkedIn == null) {
 			this.linkedIn = Create.tempSet();
 		}
 		this.linkedIn.add(folder.getGuid());
 	}
-	
+
 	@Override
 	public void setCreateLinkedIn(final BaseEntry<?> folder, final String key) {
-		
-		
+
 		if (this.linkedIn == null) {
 			this.linkedIn = Create.tempSet();
 		}
 		this.linkedIn.add(folder.getGuid() + '\n' + key);
 	}
-	
+
 	@Override
 	public void setCreateLinkedWith(final BaseEntry<?> entry) {
-		
-		
+
 		throw new UnsupportedOperationException("Only new uncommited objects can be linked!");
 	}
-	
+
 	@Override
 	public void setCreateLocal(final boolean local) {
-		
-		
+
 		this.local = local;
 	}
-	
+
 	@Override
 	public void setParentGuid(final String parentGuid) {
-		
-		
+
 		this.parentGuid = parentGuid;
 	}
-	
+
 	@Override
 	public String toString() {
-		
-		
+
 		return "[object " + this.baseClass() + "(" + this.toStringDetails() + ")]";
 	}
-	
+
 	private String toStringDetails() {
-		
-		
+
 		final StringBuilder buffer = new StringBuilder();
 		for (final Iterator<String> iterator = Base.keys(this.data); iterator.hasNext();) {
 			final String key = iterator.next();
@@ -683,25 +664,22 @@ class ChangeForEntryNested extends ChangeAbstract implements ChangeNested {
 		}
 		return "guid=" + this.entry.getGuid() + ", parentGuid=" + this.parentGuid + buffer;
 	}
-	
+
 	@Override
 	public void touch() {
-		
-		
+
 		this.touch = true;
 	}
-	
+
 	@Override
 	public final void unlink() {
-		
-		
+
 		this.unlink(false);
 	}
-	
+
 	@Override
 	public final void unlink(final boolean soft) {
-		
-		
+
 		this.target.add(new ChangeDoUnlink(this.entry, soft));
 	}
 }

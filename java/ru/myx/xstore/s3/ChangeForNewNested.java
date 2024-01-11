@@ -235,6 +235,27 @@ class ChangeForNewNested extends ChangeAbstract implements ChangeNested {
 	}
 
 	@Override
+	public void nestUnlink(final BaseEntry<?> entry, final boolean soft) {
+
+		if (entry == null) {
+			return;
+		}
+		if (entry.getClass() != EntryImpl.class || entry.getStorageImpl() != this.storage) {
+			entry.createChange().unlink(soft);
+			return;
+		}
+		if (this.children == null) {
+			synchronized (this) {
+				if (this.children == null) {
+					this.children = new ArrayList<>();
+				}
+			}
+		}
+		this.children.add(new ChangeDoDelete((EntryImpl) entry, soft));
+		return;
+	}
+
+	@Override
 	public boolean realCommit(final Transaction transaction) throws Throwable {
 
 		String typeName = Base.getString(this.data, "$type", null);
