@@ -728,7 +728,12 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						}
 					}
 					final BaseMap data = new BaseNativeObject(null);
-					data.baseDefineImportAllEnumerable(entry.getDataReal(this.storage, conn));
+					try {
+						data.baseDefineImportAllEnumerable(entry.getDataReal(this.storage, conn));
+					} catch (final Throwable t) {
+						Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while getting document fields, skip document", t);
+						break;
+					}
 					if (!excludeFields.isEmpty()) {
 						for (final String key : excludeFields) {
 							data.baseDelete(key);
@@ -1226,8 +1231,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 	}
 
 	/** @param conn
-	 * @param id
-	 */
+	 * @param id */
 	private void doUpdateExtra(final Connection conn, final String id) throws Exception {
 
 		MatExtra.update(this.server, conn, id);
