@@ -45,57 +45,57 @@ import ru.myx.xstore.s3.concept.TreeData;
 
 /** @author myx */
 final class Leaf {
-
+	
 	private static final int RT_INCOMPLETE = 0x02206241;
-
+	
 	private static final int RT_EXTRA = 0x00000303;
-
+	
 	private static final int RT_MAP = 0x00070606;
-
-	private static final long CACHE_EXTRA = 1L * 1000L * 60L * 60L * 24L * 7L;
-
-	private static final long CACHE_TTL = 2L * 1000L * 60L * 60L * 24L * 7L;
-
+	
+	private static final long CACHE_EXTRA = 1L * 60_000L * 60L * 24L * 7L;
+	
+	private static final long CACHE_TTL = 2L * 60_000L * 60L * 24L * 7L;
+	
 	private static final TreeData EMPTY_TREE = TreeData.EMPTY_TREE;
-
+	
 	private static final Reference<External> extraLoading = new WeakReference<>(null);
-
+	
 	private static final Reference<External> extraUndefined = new WeakReference<>(null);
-
+	
 	private static final int FOLDERS_NAME_RADIX = 32;
-
+	
 	private static final Reference<LinkData> linkLoading = new WeakReference<>(null);
-
+	
 	private static final Reference<LinkData> linkUndefined = new WeakReference<>(null);
-
+	
 	private static final LinkData[] listLoading = new LinkData[0];
-
+	
 	private static final LinkData[] listUndefined = new LinkData[0];
-
+	
 	private static final String OWNER = "S3-LCLEAF";
-
+	
 	private static final int STATE_ARCHIVE = ModuleInterface.STATE_ARCHIVE;
-
+	
 	private static final int STATE_PUBLISH = ModuleInterface.STATE_PUBLISH;
-
+	
 	private static final int STATE_SYSTEM = ModuleInterface.STATE_SYSTEM;
-
+	
 	private static final Reference<TreeData> treeLoading = new WeakReference<>(null);
-
+	
 	private static final Reference<TreeData> treeUndefined = new WeakReference<>(null);
-
+	
 	private static final MimeType MT_TEXT_XML = MimeType.getMimeType("text/xml", MimeTypeCompressibility.SURE_COMPRESS, true);
-
+	
 	private static final MimeType MT_AE3_STRING = MimeType.getMimeType("application/vnd.myx.ae3-string", MimeTypeCompressibility.SURE_COMPRESS, true);
-
+	
 	private static final MimeType MT_AE3_MAPXML = MimeType.getMimeType("application/vnd.myx.ae3-mapxml", MimeTypeCompressibility.SURE_COMPRESS, true);
-
+	
 	private static final MimeType MT_AE3_BUFFER = MimeType.getMimeType("application/vnd.myx.ae3-buffer", MimeTypeCompressibility.TRY_COMPRESS, true);
-
+	
 	private static final MimeType MT_AE3_COPIER = MimeType.getMimeType("application/vnd.myx.ae3-copier", MimeTypeCompressibility.TRY_COMPRESS, true);
-
+	
 	private static final void cleanRecursive(final File folder) {
-
+		
 		final File[] children = folder.listFiles();
 		if (children != null && children.length > 0) {
 			for (int i = children.length - 1; i >= 0; --i) {
@@ -109,9 +109,9 @@ final class Leaf {
 		}
 		folder.delete();
 	}
-
+	
 	private static final LinkData readLinkData(final String identifier, final DataInput din) throws Exception {
-
+		
 		final int lnkLuid = din.readInt();
 		final String lnkCntId = din.readUTF();
 		final String lnkName = din.readUTF();
@@ -145,9 +145,9 @@ final class Leaf {
 				trSearchable,
 				extLink);
 	}
-
+	
 	private static final LinkData[] readListing(final DataInput din) throws Exception {
-
+		
 		final int length = din.readInt();
 		if (length == 0) {
 			return TreeData.ENTRY_ARRAY_EMPTY;
@@ -159,9 +159,9 @@ final class Leaf {
 		}
 		return entries;
 	}
-
+	
 	private static final LinkData readListingLinkData(final DataInput din) throws Exception {
-
+		
 		final String lnkId = din.readUTF();
 		final boolean lnkFolder = din.readBoolean();
 		final long objCreated = din.readLong();
@@ -171,9 +171,9 @@ final class Leaf {
 		final boolean trSearchable = objState == Leaf.STATE_ARCHIVE || objState == Leaf.STATE_PUBLISH;
 		return new LinkData(lnkId, -1, null, null, lnkFolder, null, null, '?', objCreated, objModified, null, null, objState, trListable, trSearchable, null);
 	}
-
+	
 	private static final TreeData readTreeData(final String identifier, final DataInput din) throws Exception {
-
+		
 		final int length = din.readInt();
 		if (length == 0) {
 			return Leaf.EMPTY_TREE;
@@ -189,9 +189,9 @@ final class Leaf {
 		}
 		return new TreeData(identifier, entries, allFiles, allFolders);
 	}
-
+	
 	private static final LinkData readTreeLinkData(final DataInput din) throws Exception {
-
+		
 		final String lnkId = din.readUTF();
 		final String lnkName = din.readUTF();
 		final boolean lnkFolder = din.readBoolean();
@@ -204,68 +204,68 @@ final class Leaf {
 		final boolean trSearchable = objState == Leaf.STATE_ARCHIVE || objState == Leaf.STATE_PUBLISH;
 		return new LinkData(lnkId, -1, null, lnkName, lnkFolder, null, null, objTitleLetter, objCreated, objModified, null, objType, objState, trListable, trSearchable, null);
 	}
-
+	
 	private static final void writeExpiration(final DataOutput dout, final long ttl) throws Exception {
-
+		
 		dout.writeLong(Engine.fastTime() + Math.round(ttl - ThreadLocalRandom.current().nextDouble() * ttl * 0.1));
 	}
-
+	
 	private final Map<String, CacheEntry> cache;
-
+	
 	private final DataInputBufferedReusable dataIn;
-
+	
 	private final DataOutputBufferedReusable dataOut;
-
+	
 	private final File[] folders;
-
+	
 	private final Object issuer;
-
+	
 	private final StorageNetwork parent;
-
+	
 	private final ServerLocal server;
-
+	
 	private final StorageLevel3 storage;
-
+	
 	private int stsCheckExpired;
-
+	
 	private int stsCheckFile;
-
+	
 	private int stsCheckRequests;
-
+	
 	private int stsReadExternal;
-
+	
 	private int stsReadLink;
-
+	
 	private int stsReadLinkExpired;
-
+	
 	private int stsReadSearchIdentity;
-
+	
 	private int stsReadSearchIdentityExpired;
-
+	
 	private int stsReadSearchLinks;
-
+	
 	private int stsReadSearchLinksExpired;
-
+	
 	private int stsReadSearchLocal;
-
+	
 	private int stsReadSearchLocalExpired;
-
+	
 	private int stsReadTree;
-
+	
 	private int stsReadTreeExpired;
-
+	
 	private int stsWriteExternal;
-
+	
 	private int stsWriteLink;
-
+	
 	private int stsWriteSearchIdentity;
-
+	
 	private int stsWriteSearchLinks;
-
+	
 	private int stsWriteSearchLocal;
-
+	
 	private int stsWriteTree;
-
+	
 	Leaf(
 			final DataInputBufferedReusable dataIn,
 			final DataOutputBufferedReusable dataOut,
@@ -274,7 +274,7 @@ final class Leaf {
 			final StorageNetwork parent,
 			final Object issuer,
 			final File[] folders) {
-
+		
 		this.storage = storage;
 		this.server = server;
 		this.parent = parent;
@@ -284,9 +284,164 @@ final class Leaf {
 		this.dataOut = dataOut;
 		this.folders = folders;
 	}
-
+	
+	private final File getCheckFolderObject(final int index) {
+		
+		final File folder = this.folders[index];
+		if (folder != null) {
+			return folder;
+		}
+		final File current = new File(
+				this.server.getFolderLocal(),
+				index < Leaf.FOLDERS_NAME_RADIX
+					? "0" + Integer.toString(index, Leaf.FOLDERS_NAME_RADIX)
+					: Integer.toString(index, Leaf.FOLDERS_NAME_RADIX));
+		if (!current.isDirectory()) {
+			current.delete();
+		}
+		this.folders[index] = current;
+		return current;
+	}
+	
+	/** @param identifier */
+	private void invalidateCacheEntry(final String identifier, final boolean delete) {
+		
+		final CacheEntry entry = this.cache.get(identifier);
+		if (entry != null) {
+			{
+				final Reference<LinkData> reference = entry.linkData;
+				if (reference != null && reference != Leaf.linkLoading) {
+					final LinkData data = reference.get();
+					if (data != null) {
+						data.invalid = true;
+					}
+					entry.linkData = null;
+					reference.clear();
+				}
+			}
+			{
+				final Reference<TreeData> reference = entry.treeData;
+				if (reference != null && reference != Leaf.treeLoading) {
+					final TreeData data = reference.get();
+					if (data != null) {
+						data.invalid = true;
+					}
+					entry.treeData = null;
+					reference.clear();
+				}
+			}
+			{
+				final Reference<External> reference = entry.extraData;
+				if (reference != null && reference != Leaf.extraLoading) {
+					entry.extraData = null;
+					reference.clear();
+				}
+			}
+			{
+				final Reference<Map<String, LinkData[]>> arrays = entry.arrays;
+				if (arrays != null) {
+					arrays.clear();
+					entry.arrays = null;
+				}
+			}
+			if (delete) {
+				this.cache.remove(identifier);
+			}
+		}
+	}
+	
+	private final External load0x0303(final String identifier, final File serialized, final DataInput din) throws IOException {
+		
+		din.readLong(); // expires
+		din.readLong(); // updated
+		final long date = din.readLong();
+		final String type = din.readUTF();
+		final int skip = din.readInt();
+		final int length = (int) serialized.length();
+		final TransferCopier copier;
+		if (length - skip <= 4096) {
+			final byte[] buffer = new byte[length - skip];
+			din.readFully(buffer);
+			copier = Transfer.wrapCopier(buffer);
+		} else {
+			copier = Transfer.createCopier(serialized, skip, serialized.length());
+		}
+		switch (type.length()) {
+			case 8 : {
+				if ("text/xml".equals(type)) {
+					return new ExtraXml(this.issuer, identifier, date, copier, this.server.getStorageExternalizerReference(), null);
+				}
+				break;
+			}
+			case 9 : {
+				if ("ae2/bytes".equals(type)) {
+					return new ExtraBytes(this.issuer, identifier, date, copier);
+				}
+				break;
+			}
+			case 10 : {
+				final char first = type.charAt(0);
+				if (first == 'a' && "ae2/binary".equals(type)) {
+					return new ExtraBinary(this.issuer, identifier, date, copier);
+				}
+				if (first == 't' && "text/plain".equals(type)) {
+					return new ExtraTextBase(this.issuer, identifier, date, copier);
+				}
+				break;
+			}
+			default :
+		}
+		return new ExtraSerialized(this.issuer, identifier, date, type, copier);
+	}
+	
+	private final RandomAccessFile openForUpdate(final File serialized) throws Exception {
+		
+		try {
+			return new RandomAccessFile(serialized, "rw");
+		} catch (final FileNotFoundException e) {
+			if (e.getMessage().indexOf("orrupt") != -1 || e.getMessage().indexOf("eadable") != -1) {
+				Report.exception(Leaf.OWNER, "trying to recover from filesystem problem!", e);
+				this.cache.clear();
+				try {
+					Thread.sleep(500L);
+					final File leafFile = serialized.getParentFile();
+					if (!leafFile.delete()) {
+						Thread.sleep(1000L);
+						if (!leafFile.delete()) {
+							final File cacheFile = leafFile.getParentFile();
+							final File cacheRoot = cacheFile.getParentFile();
+							final File corruptedRoot = new File(cacheRoot, "corrupted");
+							corruptedRoot.mkdirs();
+							final File corruptedFile = new File(corruptedRoot, Format.Compact.date(System.currentTimeMillis()) + "-" + serialized.getName());
+							if (!leafFile.renameTo(corruptedFile)) {
+								Thread.sleep(1500L);
+								if (!leafFile.renameTo(corruptedFile)) {
+									Report.exception(Leaf.OWNER, "Cannot get rid of corrupted folder!", e);
+								}
+							}
+						}
+					}
+					leafFile.mkdirs();
+					this.cache.clear();
+				} catch (final InterruptedException e1) {
+					// ignore
+				}
+				return new RandomAccessFile(serialized, "rw");
+			}
+			Report.warning(Leaf.OWNER, "File is busy for writing, delay 150 ms, filename=" + serialized.getAbsolutePath());
+			Thread.sleep(150L);
+			try {
+				return new RandomAccessFile(serialized, "rw");
+			} catch (final FileNotFoundException e2) {
+				Report.warning(Leaf.OWNER, "File is busy for writing, delay 500 ms, filename=" + serialized.getAbsolutePath());
+				Thread.sleep(500L);
+				return new RandomAccessFile(serialized, "rw");
+			}
+		}
+	}
+	
 	final int accept(final int folderIndex, final String identifier, final long date, final String type, final InputStream data) throws Exception {
-
+		
 		synchronized (this.dataIn) {
 			final File folder = this.getCheckFolderObject(folderIndex);
 			final File target = new File(folder, identifier);
@@ -314,9 +469,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final void check(final int folderIndex) throws Exception {
-
+		
 		final File folder = this.getCheckFolderObject(folderIndex);
 		final File[] extras = folder.listFiles();
 		if (extras == null) {
@@ -440,27 +595,9 @@ final class Leaf {
 			}
 		}
 	}
-
-	private final File getCheckFolderObject(final int index) {
-
-		final File folder = this.folders[index];
-		if (folder != null) {
-			return folder;
-		}
-		final File current = new File(
-				this.server.getFolderLocal(),
-				index < Leaf.FOLDERS_NAME_RADIX
-					? "0" + Integer.toString(index, Leaf.FOLDERS_NAME_RADIX)
-					: Integer.toString(index, Leaf.FOLDERS_NAME_RADIX));
-		if (!current.isDirectory()) {
-			current.delete();
-		}
-		this.folders[index] = current;
-		return current;
-	}
-
+	
 	final External getExternal(final int folderIndex, final Object attachment, final String identifier) {
-
+		
 		try {
 			final CacheEntry cache = this.cache.get(identifier);
 			if (cache != null) {
@@ -581,7 +718,7 @@ final class Leaf {
 							} finally {
 								din.close();
 							}
-
+							
 						}
 					}
 				}
@@ -624,14 +761,14 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final Object getIssuer() {
-
+		
 		return this.issuer;
 	}
-
+	
 	final LinkData getLinkData(final int folderIndex, final String identifier) {
-
+		
 		try {
 			final CacheEntry cache = this.cache.get(identifier);
 			if (cache != null) {
@@ -662,7 +799,7 @@ final class Leaf {
 		} catch (final ConcurrentModificationException e) {
 			Report.info(Leaf.OWNER, "Extra concurrent modification: guid=" + identifier);
 		}
-
+		
 		final long startDate = System.currentTimeMillis();
 		boolean load = false;
 		CacheEntry cache = null;
@@ -939,9 +1076,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final TreeData getTreeData(final int folderIndex, final String identifier) {
-
+		
 		try {
 			final CacheEntry cache = this.cache.get(identifier);
 			if (cache != null) {
@@ -972,7 +1109,7 @@ final class Leaf {
 		} catch (final ConcurrentModificationException e) {
 			Report.info(Leaf.OWNER, "Extra concurrent modification: guid=" + identifier);
 		}
-
+		
 		final long startDate = System.currentTimeMillis();
 		boolean load = false;
 		CacheEntry cache = null;
@@ -1111,9 +1248,9 @@ final class Leaf {
 							this.dataOut.flush();
 							final long sizePosition = dio.getFilePointer();
 							this.dataOut.writeInt(-1);
-
+							
 							BinaryFormat.writeTreeLinkArray(this.dataOut, tree);
-
+							
 							this.dataOut.close();
 							final long endPosition = dio.getFilePointer();
 							if (rewrite) {
@@ -1131,7 +1268,7 @@ final class Leaf {
 								? "Load tree, imported/created: guid="
 								: "Load tree, imported/appended: guid=") + identifier + ", count=" + tree.length + ", size=" + Format.Compact.toBytes(serialized.length())
 									+ ", took=" + Format.Compact.toPeriod(System.currentTimeMillis() - startDate));
-
+					
 				}
 			}
 			if (cache.treeData == Leaf.treeLoading) {
@@ -1172,9 +1309,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final boolean hasExternal(final int folderIndex, final String identifier) {
-
+		
 		synchronized (this.dataIn) {
 			final File folder = this.getCheckFolderObject(folderIndex);
 			final File target = new File(folder, identifier);
@@ -1184,56 +1321,9 @@ final class Leaf {
 		}
 		return false;
 	}
-
-	/** @param identifier */
-	private void invalidateCacheEntry(final String identifier, final boolean delete) {
-
-		final CacheEntry entry = this.cache.get(identifier);
-		if (entry != null) {
-			{
-				final Reference<LinkData> reference = entry.linkData;
-				if (reference != null && reference != Leaf.linkLoading) {
-					final LinkData data = reference.get();
-					if (data != null) {
-						data.invalid = true;
-					}
-					entry.linkData = null;
-					reference.clear();
-				}
-			}
-			{
-				final Reference<TreeData> reference = entry.treeData;
-				if (reference != null && reference != Leaf.treeLoading) {
-					final TreeData data = reference.get();
-					if (data != null) {
-						data.invalid = true;
-					}
-					entry.treeData = null;
-					reference.clear();
-				}
-			}
-			{
-				final Reference<External> reference = entry.extraData;
-				if (reference != null && reference != Leaf.extraLoading) {
-					entry.extraData = null;
-					reference.clear();
-				}
-			}
-			{
-				final Reference<Map<String, LinkData[]>> arrays = entry.arrays;
-				if (arrays != null) {
-					arrays.clear();
-					entry.arrays = null;
-				}
-			}
-			if (delete) {
-				this.cache.remove(identifier);
-			}
-		}
-	}
-
+	
 	final void invalidateDeleteExtra(final int folderIndex, final String identifier) {
-
+		
 		synchronized (this.dataIn) {
 			try {
 				final File folder = this.getCheckFolderObject(folderIndex);
@@ -1258,9 +1348,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final void invalidateDeleteLink(final int folderIndex, final String identifier) {
-
+		
 		synchronized (this.dataIn) {
 			try {
 				final File folder = this.getCheckFolderObject(folderIndex);
@@ -1285,9 +1375,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final void invalidateUpdateIden(final int folderIndex, final String identifier) {
-
+		
 		synchronized (this.dataIn) {
 			try {
 				final File folder = this.getCheckFolderObject(folderIndex);
@@ -1312,9 +1402,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final void invalidateUpdateLink(final int folderIndex, final String identifier) {
-
+		
 		synchronized (this.dataIn) {
 			try {
 				final File folder = this.getCheckFolderObject(folderIndex);
@@ -1344,9 +1434,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final void invalidateUpdateTree(final int folderIndex, final String identifier) {
-
+		
 		synchronized (this.dataIn) {
 			try {
 				final File folder = this.getCheckFolderObject(folderIndex);
@@ -1371,99 +1461,9 @@ final class Leaf {
 			}
 		}
 	}
-
-	private final External load0x0303(final String identifier, final File serialized, final DataInput din) throws IOException {
-
-		din.readLong(); // expires
-		din.readLong(); // updated
-		final long date = din.readLong();
-		final String type = din.readUTF();
-		final int skip = din.readInt();
-		final int length = (int) serialized.length();
-		final TransferCopier copier;
-		if (length - skip <= 4096) {
-			final byte[] buffer = new byte[length - skip];
-			din.readFully(buffer);
-			copier = Transfer.wrapCopier(buffer);
-		} else {
-			copier = Transfer.createCopier(serialized, skip, serialized.length());
-		}
-		switch (type.length()) {
-			case 8 : {
-				if ("text/xml".equals(type)) {
-					return new ExtraXml(this.issuer, identifier, date, copier, this.server.getStorageExternalizerReference(), null);
-				}
-				break;
-			}
-			case 9 : {
-				if ("ae2/bytes".equals(type)) {
-					return new ExtraBytes(this.issuer, identifier, date, copier);
-				}
-				break;
-			}
-			case 10 : {
-				final char first = type.charAt(0);
-				if (first == 'a' && "ae2/binary".equals(type)) {
-					return new ExtraBinary(this.issuer, identifier, date, copier);
-				}
-				if (first == 't' && "text/plain".equals(type)) {
-					return new ExtraTextBase(this.issuer, identifier, date, copier);
-				}
-				break;
-			}
-			default :
-		}
-		return new ExtraSerialized(this.issuer, identifier, date, type, copier);
-	}
-
-	private final RandomAccessFile openForUpdate(final File serialized) throws Exception {
-
-		try {
-			return new RandomAccessFile(serialized, "rw");
-		} catch (final FileNotFoundException e) {
-			if (e.getMessage().indexOf("orrupt") != -1 || e.getMessage().indexOf("eadable") != -1) {
-				Report.exception(Leaf.OWNER, "trying to recover from filesystem problem!", e);
-				this.cache.clear();
-				try {
-					Thread.sleep(500L);
-					final File leafFile = serialized.getParentFile();
-					if (!leafFile.delete()) {
-						Thread.sleep(1000L);
-						if (!leafFile.delete()) {
-							final File cacheFile = leafFile.getParentFile();
-							final File cacheRoot = cacheFile.getParentFile();
-							final File corruptedRoot = new File(cacheRoot, "corrupted");
-							corruptedRoot.mkdirs();
-							final File corruptedFile = new File(corruptedRoot, Format.Compact.date(System.currentTimeMillis()) + "-" + serialized.getName());
-							if (!leafFile.renameTo(corruptedFile)) {
-								Thread.sleep(1500L);
-								if (!leafFile.renameTo(corruptedFile)) {
-									Report.exception(Leaf.OWNER, "Cannot get rid of corrupted folder!", e);
-								}
-							}
-						}
-					}
-					leafFile.mkdirs();
-					this.cache.clear();
-				} catch (final InterruptedException e1) {
-					// ignore
-				}
-				return new RandomAccessFile(serialized, "rw");
-			}
-			Report.warning(Leaf.OWNER, "File is busy for writing, delay 150 ms, filename=" + serialized.getAbsolutePath());
-			Thread.sleep(150L);
-			try {
-				return new RandomAccessFile(serialized, "rw");
-			} catch (final FileNotFoundException e2) {
-				Report.warning(Leaf.OWNER, "File is busy for writing, delay 500 ms, filename=" + serialized.getAbsolutePath());
-				Thread.sleep(500L);
-				return new RandomAccessFile(serialized, "rw");
-			}
-		}
-	}
-
+	
 	final void putCopier(final int folderIndex, final String identifier, final String type, final TransferCopier copier) throws Exception {
-
+		
 		synchronized (this.dataIn) {
 			final File folder = this.getCheckFolderObject(folderIndex);
 			folder.mkdirs();
@@ -1488,9 +1488,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final LinkData[] searchIdentity(final int folderIndex, final String identifier) {
-
+		
 		final String searchKey = "\n$Si";
 		try {
 			final CacheEntry cache = this.cache.get(identifier);
@@ -1520,7 +1520,7 @@ final class Leaf {
 		} catch (final ConcurrentModificationException e) {
 			Report.info(Leaf.OWNER, "Extra concurrent modification: guid=" + identifier);
 		}
-
+		
 		final long startDate = System.currentTimeMillis();
 		boolean load = false;
 		CacheEntry cache = null;
@@ -1666,7 +1666,7 @@ final class Leaf {
 								? "Search identity, imported/created: guid="
 								: "Search identity, imported/appended: guid=") + identifier + ", searchKey=" + searchKey.substring(1) + ", count=" + result.length + ", size="
 									+ Format.Compact.toBytes(serialized.length()) + ", took=" + Format.Compact.toPeriod(System.currentTimeMillis() - startDate));
-
+					
 				}
 			}
 			cache.setByKey(
@@ -1701,11 +1701,11 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final LinkData[] searchLinks(final int folderIndex, final String identifier) {
-
+		
 		final String searchKey = "\n$So";
-
+		
 		try {
 			final CacheEntry cache = this.cache.get(identifier);
 			if (cache != null) {
@@ -1734,7 +1734,7 @@ final class Leaf {
 		} catch (final ConcurrentModificationException e) {
 			Report.info(Leaf.OWNER, "Extra concurrent modification: guid=" + identifier);
 		}
-
+		
 		final long startDate = System.currentTimeMillis();
 		boolean load = false;
 		CacheEntry cache = null;
@@ -1880,7 +1880,7 @@ final class Leaf {
 								? "Search links, imported/created: guid="
 								: "Search links, imported/appended: guid=") + identifier + ", searchKey=" + searchKey.substring(1) + ", count=" + result.length + ", size="
 									+ Format.Compact.toBytes(serialized.length()) + ", took=" + Format.Compact.toPeriod(System.currentTimeMillis() - startDate));
-
+					
 				}
 			}
 			cache.setByKey(
@@ -1915,9 +1915,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final LinkData[] searchLocal(final int folderIndex, final String identifier, final String condition) {
-
+		
 		final String searchKey = "\n$sL/" + (condition == null
 			? ""
 			: condition);
@@ -1949,7 +1949,7 @@ final class Leaf {
 		} catch (final ConcurrentModificationException e) {
 			Report.info(Leaf.OWNER, "Extra concurrent modification: guid=" + identifier);
 		}
-
+		
 		final long startDate = System.currentTimeMillis();
 		boolean load = false;
 		CacheEntry cache = null;
@@ -2133,9 +2133,9 @@ final class Leaf {
 			}
 		}
 	}
-
+	
 	final void statusFill(final StatusContainer container) {
-
+		
 		container.stsCacheSize += this.cache.size();
 		container.stsCheckFile += this.stsCheckFile;
 		container.stsCheckExpired += this.stsCheckExpired;

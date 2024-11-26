@@ -36,133 +36,133 @@ import ru.myx.xstore.s3.concept.TreeData;
 
 /** @author myx */
 public class ServerLocal implements StorageInterface, ExternalHandler, TargetExternal {
-	
+
 	private static final int FOLDERS_COUNT = 1024;
-	
+
 	private static final int FOLDERS_MASK = ServerLocal.FOLDERS_COUNT - 1;
-	
+
 	private static final int LEAF_COUNT = 16;
-	
+
 	private static final int LEAF_MASK = ServerLocal.LEAF_COUNT - 1;
-	
+
 	private static final Map<Integer, Map<Integer, Map<String, Number>>> NULL_OBJECT_CALENDAR = Collections.emptyMap();
-	
+
 	private static final Map.Entry<String, Object>[] NULL_OBJECT_OBJS = Convert.Array.toAny(new Map.Entry[0]);
-	
+
 	private static final DataInputBufferedReusable[] DATA_INPUTS = ServerLocal.createStaticDataInputs();
-	
+
 	private static final DataOutputBufferedReusable[] DATA_OUTPUTS = ServerLocal.createStaticDataOutputs();
-	
+
 	private static final DataInputBufferedReusable[] createStaticDataInputs() {
-		
+
 		final int IO_BUFFER_CAPACITY = Engine.MODE_SIZE
 			? 16 * 1024
 			: Engine.MODE_SPEED
 				? 64 * 1024
 				: 32 * 1024;
-		
+
 		final int IO_BUFFER_UTF = Engine.MODE_SIZE
 			? 8 * 1024
 			: Engine.MODE_SPEED
 				? 32 * 1024
 				: 16 * 1024;
-		
+
 		final int IO_READ_AHEAD = Engine.MODE_SIZE
 			? 1 * 1024
 			: 4 * 1024;
-		
+
 		final DataInputBufferedReusable[] result = new DataInputBufferedReusable[ServerLocal.LEAF_COUNT];
 		for (int i = ServerLocal.LEAF_MASK; i >= 0; --i) {
 			result[i] = new DataInputBufferedReusable(IO_READ_AHEAD, IO_BUFFER_CAPACITY, IO_BUFFER_UTF);
 		}
 		return result;
 	}
-	
+
 	private static final DataOutputBufferedReusable[] createStaticDataOutputs() {
-		
+
 		final int IO_BUFFER_CAPACITY = Engine.MODE_SIZE
 			? 16 * 1024
 			: Engine.MODE_SPEED
 				? 64 * 1024
 				: 32 * 1024;
-		
+
 		final int IO_BUFFER_UTF = Engine.MODE_SIZE
 			? 8 * 1024
 			: Engine.MODE_SPEED
 				? 32 * 1024
 				: 16 * 1024;
-		
+
 		final DataOutputBufferedReusable[] result = new DataOutputBufferedReusable[ServerLocal.LEAF_COUNT];
 		for (int i = ServerLocal.LEAF_MASK; i >= 0; --i) {
 			result[i] = new DataOutputBufferedReusable(IO_BUFFER_CAPACITY, IO_BUFFER_UTF);
 		}
 		return result;
 	}
-	
+
 	private final CacheL2<int[]> cacheDictionary;
-	
+
 	private final CacheL2<Object> cacheTreeSearch;
-	
+
 	private final CreatorSearch createSearch;
-	
+
 	private final CreatorSearchCalendar createSearchCalendar;
-	
+
 	private final QueueStackRecord<DiscardRecord> discardQueue = new QueueStackRecord<>();
-	
+
 	private final ExternalizerReference externalizerReference;
-	
+
 	private final File folderLocal;
-	
+
 	private final IndexingDictionaryCached indexingDictionary;
-	
+
 	private int leafIndex = (int) (System.currentTimeMillis() / 1024);
-	
+
 	private final Leaf[] leafs;
-	
+
 	private final StorageNetwork network;
-	
+
 	private final StorageLevel3 storage;
-	
+
 	private int stsChecks = 0;
-	
+
 	private int stsDLINK = 0;
-	
+
 	private int stsExternal = 0;
-	
+
 	private int stsExternalReference = 0;
-	
+
 	private int stsHasExternal = 0;
-	
+
 	private int stsLink = 0;
-	
+
 	private int stsPutExternal = 0;
-	
+
 	private int stsSearch = 0;
-	
+
 	private int stsSearchCalendar = 0;
-	
+
 	private int stsSearchIdentity = 0;
-	
+
 	private int stsSearchLinks = 0;
-	
+
 	private int stsSearchLocal = 0;
-	
+
 	private int stsTree = 0;
-	
+
 	private int stsUEXTR = 0;
-	
+
 	private int stsUIDEN = 0;
-	
+
 	private int stsULINK = 0;
-	
+
 	private int stsUTREE = 0;
-	
+
 	/** @param storage
 	 * @param folder
 	 * @param cache
 	 * @param cachePrefix */
 	public ServerLocal(final StorageLevel3 storage, final File folder, final CacheL3<Object> cache, final String cachePrefix) {
-		
+
 		this.storage = storage;
 		this.folderLocal = new File(folder, "extra");
 		this.folderLocal.mkdirs();
@@ -190,222 +190,164 @@ public class ServerLocal implements StorageInterface, ExternalHandler, TargetExt
 			}
 		}
 	}
-	
+
 	@Override
 	public final int accept(final String identifier, final long date, final String type, final InputStream data) throws Exception {
-		
+
 		final int index = identifier.hashCode();
 		return this.leafs[index & ServerLocal.LEAF_MASK].accept(index & ServerLocal.FOLDERS_MASK, identifier, date, type, data);
 	}
-	
-	final void checkDiscard() {
-		
-		for (;;) {
-			final DiscardRecord record;
-			synchronized (this.discardQueue) {
-				record = this.discardQueue.first();
-				if (record == null) {
-					return;
-				}
-				if (record.date > Engine.fastTime()) {
-					return;
-				}
-				this.discardQueue.next();
-			}
-			record.invalidator.invalidateOn(this, record.guid);
-		}
-	}
-	
+
 	@Override
 	public boolean checkIssuer(final Object issuer) {
-		
+
 		return issuer != null && issuer == this.storage.getServerNetwork().getIssuer();
 	}
-	
-	final void checkOnce() {
-		
-		try {
-			final int index = this.leafIndex++;
-			this.stsChecks++;
-			this.leafs[index & ServerLocal.LEAF_MASK].check(index & ServerLocal.FOLDERS_MASK);
-		} catch (final Exception e) {
-			throw new RuntimeException("checkOnce", e);
-		}
-	}
-	
-	final void enqueueDiscard(final String guid, final InvalidationEventType invalidator) {
-		
-		synchronized (this.discardQueue) {
-			this.discardQueue.enqueue(new DiscardRecord(Engine.fastTime() + 1000L * 60L, guid, invalidator));
-		}
-	}
-	
+
 	@Override
 	public final External getExternal(final Object attachment, final String identifier) throws Exception {
-		
+
 		this.stsExternal++;
 		final int index = identifier.hashCode();
 		return this.leafs[index & ServerLocal.LEAF_MASK].getExternal(index & ServerLocal.FOLDERS_MASK, attachment, identifier);
 	}
-	
+
 	@Override
 	public final ExternalHandler getExternalizerObject() {
-		
+
 		return this;
 	}
-	
+
 	@Override
 	public final ExternalHandler getExternalizerReference() {
-		
+
 		return this.externalizerReference;
 	}
-	
-	final External getExternalReference(final String identifier) {
-		
-		this.stsExternalReference++;
-		final int index = identifier.hashCode();
-		return new ExtraLocal(identifier, this.leafs[index & ServerLocal.LEAF_MASK], index & ServerLocal.FOLDERS_MASK);
-	}
-	
-	final File getFolderLocal() {
-		
-		return this.folderLocal;
-	}
-	
+
 	@Override
 	public final IndexingDictionary getIndexingDictionary() {
-		
+
 		return this.indexingDictionary;
 	}
-	
+
 	@Override
 	public final IndexingStemmer getIndexingStemmer() {
-		
+
 		return this.storage.getServerNetwork().getIndexingStemmer();
 	}
-	
+
 	@Override
 	public final Object getIssuer() {
-		
+
 		return this.storage.getServerNetwork().getIssuer();
 	}
-	
+
 	@Override
 	public final LinkData getLink(final String identifier) {
-		
+
 		this.stsLink++;
 		final int index = identifier.hashCode();
 		return this.leafs[index & ServerLocal.LEAF_MASK].getLinkData(index & ServerLocal.FOLDERS_MASK, identifier);
 	}
-	
-	StorageLevel3 getStorage() {
-		
-		return this.storage;
-	}
-	
-	final ExternalHandler getStorageExternalizerReference() {
-		
-		return this.storage.getServerInterface().getExternalizerReference();
-	}
-	
+
 	@Override
 	public final TreeData getTree(final String identifier) {
-		
+
 		this.stsTree++;
 		final int index = identifier.hashCode();
 		return this.leafs[index & ServerLocal.LEAF_MASK].getTreeData(index & ServerLocal.FOLDERS_MASK, identifier);
 	}
-	
+
 	@Override
 	public final boolean hasExternal(final Object attachment, final String identifier) throws Exception {
-		
+
 		this.stsHasExternal++;
 		final int index = identifier.hashCode();
 		return this.leafs[index & ServerLocal.LEAF_MASK].hasExternal(index & ServerLocal.FOLDERS_MASK, identifier) || this.network.hasExternal(attachment, identifier);
 	}
-	
+
 	@Override
 	public final void invalidateCache() {
-		
+
 		this.cacheTreeSearch.clear();
 		this.cacheDictionary.clear();
 	}
-	
+
 	@Override
 	public final void invalidateDeleteExtra(final String identifier) {
-		
+
 		this.stsUEXTR++;
 		final int index = identifier.hashCode();
 		this.leafs[index & ServerLocal.LEAF_MASK].invalidateDeleteExtra(index & ServerLocal.FOLDERS_MASK, identifier);
 		this.storage.getObjectCache().remove(identifier);
 	}
-	
+
 	@Override
 	public final void invalidateDeleteLink(final String identifier) {
-		
+
 		this.stsDLINK++;
 		final int index = identifier.hashCode();
 		this.leafs[index & ServerLocal.LEAF_MASK].invalidateDeleteLink(index & ServerLocal.FOLDERS_MASK, identifier);
 		this.cacheTreeSearch.remove(identifier);
 		this.storage.invalidateLink(identifier);
 	}
-	
+
 	@Override
 	public final void invalidateUpdateIdentity(final String identifier) {
-		
+
 		this.stsUIDEN++;
 		final int index = identifier.hashCode();
 		this.leafs[index & ServerLocal.LEAF_MASK].invalidateUpdateIden(index & ServerLocal.FOLDERS_MASK, identifier);
 	}
-	
+
 	@Override
 	public final void invalidateUpdateLink(final String identifier) {
-		
+
 		this.stsULINK++;
 		final int index = identifier.hashCode();
 		this.leafs[index & ServerLocal.LEAF_MASK].invalidateUpdateLink(index & ServerLocal.FOLDERS_MASK, identifier);
 		this.storage.invalidateLink(identifier);
 	}
-	
+
 	@Override
 	public final void invalidateUpdateTree(final String identifier) {
-		
+
 		this.stsUTREE++;
 		final int index = identifier.hashCode();
 		this.leafs[index & ServerLocal.LEAF_MASK].invalidateUpdateTree(index & ServerLocal.FOLDERS_MASK, identifier);
 		this.cacheTreeSearch.remove(identifier);
 		this.storage.getObjectCache().remove(identifier);
 	}
-	
+
 	@Override
 	public final String putExternal(final Object attachment, final String key, final String type, final TransferCopier copier) throws Exception {
-		
+
 		this.stsPutExternal++;
 		final String identifier = this.network.putExternal(attachment, key, type, copier);
 		final int index = identifier.hashCode();
 		this.leafs[index & ServerLocal.LEAF_MASK].putCopier(index & ServerLocal.FOLDERS_MASK, identifier, type, copier);
 		return identifier;
 	}
-	
+
 	@Override
 	public final Map.Entry<String, Object>[]
 			search(final String lnkId, final int limit, final boolean all, final long timeout, final String sort, final long dateStart, final long dateEnd, final String filter) {
-		
+
 		this.stsSearch++;
 		return this.createSearch.search(this.cacheTreeSearch, lnkId, limit, all, timeout, sort, dateStart, dateEnd, filter);
 	}
-	
+
 	@Override
 	public final Map<Integer, Map<Integer, Map<String, Number>>>
 			searchCalendar(final String lnkId, final boolean all, final long timeout, final long dateStart, final long dateEnd, final String filter) {
-		
+
 		this.stsSearchCalendar++;
 		return this.createSearchCalendar.search(this.cacheTreeSearch, lnkId, all, timeout, dateStart, dateEnd, filter);
 	}
-	
+
 	@Override
 	public final LinkData[] searchIdentity(final String identifier, final boolean all) throws Exception {
-		
+
 		this.stsSearchIdentity++;
 		final int index = identifier.hashCode();
 		final LinkData[] result = this.leafs[index & ServerLocal.LEAF_MASK].searchIdentity(index & ServerLocal.FOLDERS_MASK, identifier);
@@ -432,10 +374,10 @@ public class ServerLocal implements StorageInterface, ExternalHandler, TargetExt
 		}
 		return filtered;
 	}
-	
+
 	@Override
 	public final LinkData[] searchLinks(final String identifier, final boolean all) throws Exception {
-		
+
 		this.stsSearchLinks++;
 		final int index = identifier.hashCode();
 		final LinkData[] result = this.leafs[index & ServerLocal.LEAF_MASK].searchLinks(index & ServerLocal.FOLDERS_MASK, identifier);
@@ -462,24 +404,24 @@ public class ServerLocal implements StorageInterface, ExternalHandler, TargetExt
 		}
 		return filtered;
 	}
-	
+
 	@Override
 	public LinkData[] searchLocal(final String identifier, final String condition) {
-		
+
 		this.stsSearchLocal++;
 		final int index = identifier.hashCode();
 		return this.leafs[index & ServerLocal.LEAF_MASK].searchLocal(index & ServerLocal.FOLDERS_MASK, identifier, condition);
 	}
-	
+
 	@Override
 	public final void start() {
-		
+
 		CleanerTask.register(this);
 	}
-	
+
 	@Override
 	public final void statusFill(final StatusInfo data) {
-		
+
 		final StatusContainer container = new StatusContainer();
 		for (int i = ServerLocal.LEAF_MASK; i >= 0; --i) {
 			this.leafs[i].statusFill(container);
@@ -526,16 +468,74 @@ public class ServerLocal implements StorageInterface, ExternalHandler, TargetExt
 		data.put("LCL, UEXTR", Format.Compact.toDecimal(this.stsUEXTR));
 		this.indexingDictionary.statusFill(data);
 	}
-	
+
 	@Override
 	public final void stop() {
-		
+
 		// ignore
 	}
-	
+
 	@Override
 	public final String toString() {
-		
+
 		return "S3LOCAL{path=" + this.folderLocal.getAbsolutePath() + "}";
+	}
+
+	final void checkDiscard() {
+
+		for (;;) {
+			final DiscardRecord record;
+			synchronized (this.discardQueue) {
+				record = this.discardQueue.first();
+				if (record == null) {
+					return;
+				}
+				if (record.date > Engine.fastTime()) {
+					return;
+				}
+				this.discardQueue.next();
+			}
+			record.invalidator.invalidateOn(this, record.guid);
+		}
+	}
+
+	final void checkOnce() {
+
+		try {
+			final int index = this.leafIndex++;
+			this.stsChecks++;
+			this.leafs[index & ServerLocal.LEAF_MASK].check(index & ServerLocal.FOLDERS_MASK);
+		} catch (final Exception e) {
+			throw new RuntimeException("checkOnce", e);
+		}
+	}
+
+	final void enqueueDiscard(final String guid, final InvalidationEventType invalidator) {
+
+		synchronized (this.discardQueue) {
+			this.discardQueue.enqueue(new DiscardRecord(Engine.fastTime() + 60_000L, guid, invalidator));
+		}
+	}
+
+	final External getExternalReference(final String identifier) {
+
+		this.stsExternalReference++;
+		final int index = identifier.hashCode();
+		return new ExtraLocal(identifier, this.leafs[index & ServerLocal.LEAF_MASK], index & ServerLocal.FOLDERS_MASK);
+	}
+
+	final File getFolderLocal() {
+
+		return this.folderLocal;
+	}
+
+	StorageLevel3 getStorage() {
+
+		return this.storage;
+	}
+
+	final ExternalHandler getStorageExternalizerReference() {
+
+		return this.storage.getServerInterface().getExternalizerReference();
 	}
 }

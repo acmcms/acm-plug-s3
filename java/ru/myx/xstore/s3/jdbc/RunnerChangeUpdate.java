@@ -44,27 +44,27 @@ import ru.myx.xstore.s3.concept.LinkData;
 
 /** @author myx */
 final class RunnerChangeUpdate implements Runnable, Runner {
-
+	
 	private static final String OWNER = "S3/UPDATE";
-
+	
 	private static final int LIMIT_BULK_TASKS = 32;
-
+	
 	private static final int LIMIT_BULK_UPGRADE = RunnerChangeUpdate.LIMIT_BULK_TASKS * 8;
-
-	private static final long PERIOD_CUT_HISTORY = 30L * 1000L * 60L * 60L * 24L;
-
-	private static final long PERIOD_CUT_RECYCLED = 2L * 1000L * 60L * 60L * 24L * 7L;
-
+	
+	private static final long PERIOD_CUT_HISTORY = 30L * 60_000L * 60L * 24L;
+	
+	private static final long PERIOD_CUT_RECYCLED = 2L * 60_000L * 60L * 24L * 7L;
+	
 	private static final int SEQ_HIGH = 4255397;
-
+	
 	private static final int SEQ_MEDIUM = 2206241;
-
+	
 	private static final Set<String> SYSTEM_KEYS = RunnerChangeUpdate.createSystemKeys();
-
+	
 	private static final void
 			createSyncs(final Connection conn, final List<Map.Entry<String, String>> created, final String entryGuid, final String parentGuid, final String taskName)
 					throws Exception {
-
+		
 		for (final Map.Entry<String, String> item : created) {
 			final String newGuid = item.getKey();
 			final String cntLnkId = item.getValue();
@@ -93,9 +93,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final Set<String> createSystemKeys() {
-
+		
 		final Set<String> result = Create.tempSet();
 		result.add("$key");
 		result.add("$title");
@@ -105,9 +105,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		result.add("$owner");
 		return result;
 	}
-
+	
 	private static final void doMaintainClearDeadAliases(final Connection conn) {
-
+		
 		try {
 			final List<String> links = RunnerChangeUpdate.doMaintainClearDeadAliasesGetThem0(conn);
 			if (links != null && !links.isEmpty()) {
@@ -123,9 +123,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadAliasesGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT a.alId,a.alLnkId FROM s3Aliases a LEFT OUTER JOIN s3Tree t ON a.alLnkId=t.lnkId LEFT OUTER JOIN s3RecycledTree r ON a.alLnkId=r.lnkId WHERE t.lnkId is NULL AND r.lnkId is NULL",
 				ResultSet.TYPE_FORWARD_ONLY,
@@ -145,9 +145,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadDictionaryWords(final Connection conn) {
-
+		
 		final String q = "DELETE FROM s3Dictionary WHERE code in (SELECT code FROM s3Dictionary LEFT OUTER JOIN s3Indices USING(code) WHERE luid IS NULL)";
 		try (final Statement st = conn.createStatement()) {
 			st.executeUpdate(q);
@@ -163,14 +163,14 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadExtraGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT e.recId FROM s3Extra e LEFT OUTER JOIN s3ExtraLink l ON e.recId=l.recId WHERE e.recDate<? AND l.recId IS NULL GROUP BY e.recId",
 				ResultSet.TYPE_FORWARD_ONLY,
 				ResultSet.CONCUR_READ_ONLY)) {
-			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 1000L * 60L * 60L));
+			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 60_000L * 60L));
 			try (final ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
 					final List<String> result = new ArrayList<>();
@@ -185,9 +185,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadExtraLinksToExtras(final Connection conn) {
-
+		
 		try {
 			final List<String> objects = RunnerChangeUpdate.doMaintainClearDeadExtraLinksToExtrasGetThem0(conn);
 			if (objects != null && !objects.isEmpty()) {
@@ -201,14 +201,14 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadExtraLinksToExtrasGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT l.recId FROM s3ExtraLink l LEFT OUTER JOIN s3Extra e ON l.recId=e.recId LEFT OUTER JOIN s3Objects o ON l.objId=o.objId WHERE (o.objCreated is NULL OR o.objCreated<?) AND e.recId is NULL GROUP BY l.recId",
 				ResultSet.TYPE_FORWARD_ONLY,
 				ResultSet.CONCUR_READ_ONLY)) {
-			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 1000L * 60L * 60L));
+			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 60_000L * 60L));
 			try (final ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
 					final List<String> result = new ArrayList<>();
@@ -223,9 +223,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadExtraLinksToObjects(final Connection conn) {
-
+		
 		try {
 			final List<String> objects = RunnerChangeUpdate.doMaintainClearDeadExtraLinksToObjectsGetThem0(conn);
 			if (objects != null && !objects.isEmpty()) {
@@ -239,14 +239,14 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadExtraLinksToObjectsGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT l.objId FROM s3ExtraLink l LEFT OUTER JOIN s3Objects o ON l.objId=o.objId LEFT OUTER JOIN s3ObjectHistory h ON l.objId=h.hsId LEFT OUTER JOIN s3ObjectVersions v ON l.objId=v.vrId LEFT OUTER JOIN s3Extra e ON l.recId=e.recId WHERE (e.recDate is NULL OR e.recDate<?) AND o.objId is NULL AND h.hsId is NULL AND v.vrId is NULL GROUP BY l.objId",
 				ResultSet.TYPE_FORWARD_ONLY,
 				ResultSet.CONCUR_READ_ONLY)) {
-			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 1000L * 60L * 60L));
+			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 60_000L * 60L));
 			try (final ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
 					final List<String> result = new ArrayList<>();
@@ -261,9 +261,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadHistoryGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT h.objId FROM s3ObjectHistory h LEFT OUTER JOIN s3Objects o ON h.objId=o.objId WHERE o.objId is NULL GROUP BY h.objId",
 				ResultSet.TYPE_FORWARD_ONLY,
@@ -282,9 +282,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final List<Object> doMaintainClearDeadLinksGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT t1.lnkLuid,t1.objId FROM s3Tree t1 LEFT OUTER JOIN s3Tree t2 ON t1.cntLnkId=t2.lnkId LEFT OUTER JOIN s3Objects o ON t1.objId=o.objId WHERE (t2.lnkId is NULL OR o.objId is NULL) AND t1.cntLnkId != '*'",
 				ResultSet.TYPE_FORWARD_ONLY,
@@ -304,9 +304,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadObjectHistories(final Connection conn) {
-
+		
 		try {
 			try (final PreparedStatement ps = conn.prepareStatement("DELETE FROM s3ObjectHistory WHERE hsDate<?")) {
 				ps.setTimestamp(1, new Timestamp(Engine.fastTime() - RunnerChangeUpdate.PERIOD_CUT_HISTORY));
@@ -324,9 +324,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadObjects(final Connection conn) {
-
+		
 		try {
 			final List<String> objects = RunnerChangeUpdate.doMaintainClearDeadObjectsGetThem0(conn);
 			if (objects != null && !objects.isEmpty()) {
@@ -342,14 +342,14 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadObjectsGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT o.objId FROM s3Objects o LEFT OUTER JOIN s3Tree t ON o.objId=t.objId LEFT OUTER JOIN s3RecycledTree r ON o.objId=r.objId WHERE o.objCreated<? AND t.objId is NULL AND r.objId is NULL",
 				ResultSet.TYPE_FORWARD_ONLY,
 				ResultSet.CONCUR_READ_ONLY)) {
-			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 12L * 1000L * 60L * 60L));
+			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 12L * 60_000L * 60L));
 			try (final ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
 					final List<String> result = new ArrayList<>();
@@ -364,9 +364,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadObjectVersions(final Connection conn) {
-
+		
 		try {
 			final List<String> objects = RunnerChangeUpdate.doMaintainClearDeadVersionsGetThem0(conn);
 			if (objects != null && !objects.isEmpty()) {
@@ -380,9 +380,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadRecycled(final Connection conn) {
-
+		
 		try {
 			try (final PreparedStatement ps = conn.prepareStatement("DELETE FROM s3Recycled WHERE delDate<?")) {
 				ps.setTimestamp(1, new Timestamp(Engine.fastTime() - RunnerChangeUpdate.PERIOD_CUT_RECYCLED));
@@ -400,9 +400,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadRecycledGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT t.delId FROM s3RecycledTree t LEFT OUTER JOIN s3Recycled r ON t.delId=r.delRootId WHERE r.delRootId is NULL GROUP BY t.delId",
 				ResultSet.TYPE_FORWARD_ONLY,
@@ -421,9 +421,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void doMaintainClearDeadSynchronizations(final Connection conn) {
-
+		
 		final String q1 = "DELETE FROM s3TreeSync WHERE lnkSrcId in (SELECT s.lnkSrcId FROM s3Tree t RIGHT OUTER JOIN s3TreeSync s ON s.lnkSrcId=t.lnkId WHERE t.lnkId is NULL)";
 		final String q2 = "DELETE FROM s3TreeSync WHERE lnkTgtId in (SELECT s.lnkTgtId FROM s3Tree t RIGHT OUTER JOIN s3TreeSync s ON s.lnkTgtId=t.lnkId WHERE t.lnkId is NULL)";
 		try (final Statement st = conn.createStatement()) {
@@ -441,9 +441,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<String> doMaintainClearDeadVersionsGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT v.objId FROM s3ObjectVersions v LEFT OUTER JOIN s3Objects o ON v.objId=o.objId WHERE o.objId is NULL GROUP BY v.objId",
 				ResultSet.TYPE_FORWARD_ONLY,
@@ -462,9 +462,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void doMaintainFix(final Connection conn) {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement("UPDATE s3Tree SET cntLnkId=? WHERE cntLnkId!=? AND lnkId=?")) {
 			ps.setString(1, "*");
 			ps.setString(2, "*");
@@ -478,14 +478,14 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private static final List<Object> doMaintainFixIndicesGetThem0(final Connection conn) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT t.lnkId,t.lnkLuid FROM s3Tree t LEFT OUTER JOIN s3Indexed i ON t.lnkLuid=i.luid LEFT OUTER JOIN s3Objects o ON t.objId=o.objId WHERE i.luid is NULL AND o.objDate<?",
 				ResultSet.TYPE_FORWARD_ONLY,
 				ResultSet.CONCUR_READ_ONLY)) {
-			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 1000L * 60L * 60L));
+			ps.setTimestamp(1, new Timestamp(Engine.fastTime() - 60_000L * 60L));
 			try (final ResultSet rs = ps.executeQuery()) {
 				if (rs.next()) {
 					final List<Object> result = new ArrayList<>();
@@ -501,40 +501,40 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private static final void eventDone(final Connection conn, final String evtId) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement("DELETE FROM s3ChangeQueue WHERE evtId=?")) {
 			ps.setString(1, evtId);
 			ps.execute();
 		}
 	}
-
+	
 	private final ServerJdbc server;
-
+	
 	private final StorageLevel3 storage;
-
+	
 	private final Indexing indexing;
-
+	
 	private final int indexingVersion;
-
+	
 	private final InvalidationCollector invalidations = new InvalidationCollector();
-
+	
 	private final RunnerServerPresence serverPresence;
-
+	
 	private boolean destroyed = false;
-
+	
 	private boolean failedLastEventIndexedCreate = false;
-
+	
 	RunnerChangeUpdate(final StorageLevel3 storage, final ServerJdbc server, final RunnerServerPresence serverPresence, final Indexing indexing) {
-
+		
 		this.storage = storage;
 		this.server = server;
 		this.serverPresence = serverPresence;
 		this.indexing = indexing;
 		this.indexingVersion = indexing.getVersion();
 	}
-
+	
 	private final boolean analyzeCreateSyncs(final Connection conn,
 			final int entryLuid,
 			final String entryGuid,
@@ -542,7 +542,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			final String parentGuid,
 			final String updateName,
 			final String taskName) throws Exception {
-
+		
 		boolean heavyLoad = false;
 		final List<Map.Entry<String, String>> list = new ArrayList<>();
 		// Do synchronization
@@ -592,9 +592,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		return heavyLoad;
 	}
-
+	
 	private final void doClean(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final int luid = Convert.MapEntry.toInt(task, "evtCmdLuid", -1);
 		if (luid != -1) {
@@ -602,9 +602,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		this.doUpdateObject(conn, guid);
 	}
-
+	
 	private final void doCleanAll(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final List<Object> linkData = new ArrayList<>();
 		try (final PreparedStatement ps = conn
@@ -629,18 +629,18 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		this.doUpdateObject(conn, guid);
 	}
-
+	
 	private final void doCleanIndices(final Connection conn, final int lnkLuid) throws Exception {
-
+		
 		Report.event(RunnerChangeUpdate.OWNER, "CLEANING_INDEX", "luid=" + lnkLuid);
 		this.indexing.doDelete(conn, lnkLuid);
 		try (final Statement st = conn.createStatement()) {
 			st.execute("DELETE FROM s3Indexed WHERE luid=" + lnkLuid);
 		}
 	}
-
+	
 	private boolean doCleanStart(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String lnkId = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final List<Object> items = new ArrayList<>();
 		this.fillTree(conn, items, lnkId);
@@ -651,9 +651,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		return items.size() > 0;
 	}
-
+	
 	private final boolean doCreateGlobal(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final LinkData entry = MatLink.materializeActual(conn, guid);
 		if (entry != null) {
@@ -668,9 +668,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		return false;
 	}
-
+	
 	private final boolean doCreateLocal(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final LinkData entry = MatLink.materializeActual(conn, guid);
 		if (entry != null) {
@@ -681,9 +681,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		return false;
 	}
-
+	
 	private void doDeleteItem(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String objId = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final int lnkLuid = Convert.MapEntry.toInt(task, "evtCmdLuid", -1);
 		MatAlias.deleteOrMove(conn, lnkLuid);
@@ -691,9 +691,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		MatLink.unlink(conn, lnkLuid);
 		this.doUpdateObject(conn, objId);
 	}
-
+	
 	private final void doIndex(final Connection conn, final LinkData entry, final int luid) throws Exception {
-
+		
 		{
 			final Set<String> hierarchy = Create.tempSet();
 			final StringBuilder parents = new StringBuilder();
@@ -769,13 +769,13 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private void doMaintainClearDead(final Connection conn, final BaseObject settings) {
-
+		
 		final int lastVersion = Convert.MapEntry.toInt(settings, "runnerVersion", 0);
 		final long nextClean = Convert.MapEntry.toLong(settings, "deadCleanupDate", 0L);
 		if (lastVersion < this.getVersion() || nextClean < Engine.fastTime()) {
-			settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 1000L * 60L * 60L * 24L));
+			settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 60_000L * 60L * 24L));
 			try {
 				conn.setAutoCommit(false);
 				try {
@@ -788,7 +788,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadDictionaryWords(conn);
@@ -800,7 +800,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadSynchronizations(conn);
@@ -812,7 +812,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					this.doMaintainClearDeadLinks(conn);
@@ -824,7 +824,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadRecycled(conn);
@@ -836,7 +836,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadAliases(conn);
@@ -848,7 +848,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadObjects(conn);
@@ -860,7 +860,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadObjectHistories(conn);
@@ -872,7 +872,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadObjectVersions(conn);
@@ -884,7 +884,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadExtraLinksToObjects(conn);
@@ -896,7 +896,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					RunnerChangeUpdate.doMaintainClearDeadExtraLinksToExtras(conn);
@@ -908,7 +908,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 				try {
 					this.doMaintainClearDeadExtra(conn);
@@ -920,7 +920,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						// ignore
 					}
 					Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+					settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 				}
 			} catch (final Throwable t) {
 				try {
@@ -929,7 +929,7 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 					// ignore
 				}
 				Report.exception(RunnerChangeUpdate.OWNER, "Unexpected exception while collecting garbage in storage", t);
-				settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 1000L * 60L));
+				settings.baseDefine("deadCleanupDate", Base.forDateMillis(Engine.fastTime() + 30L * 60_000L));
 			} finally {
 				try {
 					conn.setAutoCommit(true);
@@ -941,9 +941,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			this.storage.commitProtectedSettings();
 		}
 	}
-
+	
 	private void doMaintainClearDeadExtra(final Connection conn) {
-
+		
 		try {
 			final List<String> objects = RunnerChangeUpdate.doMaintainClearDeadExtraGetThem0(conn);
 			if (objects != null && !objects.isEmpty()) {
@@ -959,9 +959,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private void doMaintainClearDeadLinks(final Connection conn) {
-
+		
 		try {
 			final List<Object> links = RunnerChangeUpdate.doMaintainClearDeadLinksGetThem0(conn);
 			if (links != null && !links.isEmpty()) {
@@ -979,9 +979,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	private void doMaintainIndexing(final Connection conn, final BaseObject settings) {
-
+		
 		final int indexingVersion = Convert.MapEntry.toInt(settings, "indexingVersion", 0);
 		if (indexingVersion != this.indexingVersion) {
 			try {
@@ -1007,18 +1007,18 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 				} catch (final RuntimeException e) {
 					throw e;
 				}
-				settings.baseDefine("indexCheckDate", Base.forDateMillis(Engine.fastTime() + 1000L * 60L * 60L * 24L));
+				settings.baseDefine("indexCheckDate", Base.forDateMillis(Engine.fastTime() + 60_000L * 60L * 24L));
 				this.storage.commitProtectedSettings();
 			} catch (final SQLException e) {
-				settings.baseDefine("indexCheckDate", Base.forDateMillis(Engine.fastTime() + 1000L * 60L * 60L * 24L));
+				settings.baseDefine("indexCheckDate", Base.forDateMillis(Engine.fastTime() + 60_000L * 60L * 24L));
 				this.storage.commitProtectedSettings();
 				throw new RuntimeException(e);
 			}
 		}
 	}
-
+	
 	private void doMaintainVersionUpdate(final Connection conn, final BaseObject settings) {
-
+		
 		final int systemVersion = Convert.MapEntry.toInt(settings, "systemVersion", 0);
 		if (systemVersion != this.indexingVersion) {
 			try {
@@ -1072,9 +1072,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			this.storage.commitProtectedSettings();
 		}
 	}
-
+	
 	private final void doRecycleAll(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final List<Object> linkData = new ArrayList<>();
 		try (final PreparedStatement ps = conn
@@ -1098,25 +1098,25 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private void doRecycleFinish(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String delId = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final int lnkLuid = Convert.MapEntry.toInt(task, "evtCmdLuid", -1);
 		this.doCleanIndices(conn, lnkLuid);
 		MatLink.unlink(conn, delId);
 	}
-
+	
 	private void doRecycleItem(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String delId = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final int lnkLuid = Convert.MapEntry.toInt(task, "evtCmdLuid", -1);
 		this.doCleanIndices(conn, lnkLuid);
 		MatRecycled.recycleLink(conn, delId, lnkLuid);
 	}
-
+	
 	private boolean doRecycleStart(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String delId = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final int lnkLuid = Convert.MapEntry.toInt(task, "evtCmdLuid", -1);
 		final List<Object> items = new ArrayList<>();
@@ -1133,9 +1133,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		MatLink.unlink(conn, delId);
 		return false;
 	}
-
+	
 	private final boolean doResync(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final LinkData entry = MatLink.materializeActual(conn, guid);
 		if (entry != null) {
@@ -1147,17 +1147,17 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		return false;
 	}
-
+	
 	private final void doUpdate(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		final int luid = Convert.MapEntry.toInt(task, "evtCmdLuid", -1);
 		final long date = Convert.MapEntry.toLong(task, "evtDate", 0L);
 		this.doUpdate(conn, guid, luid, date);
 	}
-
+	
 	private final void doUpdate(final Connection conn, final String lnkId, final int lnkLuid, final long date) throws Exception {
-
+		
 		if (lnkLuid != -1 && date > 0L) {
 			try (final PreparedStatement ps = conn
 					.prepareStatement("SELECT lnkIndexed FROM s3Indexed WHERE luid=" + lnkLuid, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
@@ -1195,9 +1195,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			this.indexing.doDelete(conn, lnkLuid);
 		}
 	}
-
+	
 	private final void doUpdateAll(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		this.invalidations.add(InvalidationEventType.UIDEN, guid);
 		final List<Object> linkData = new ArrayList<>();
@@ -1229,22 +1229,22 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	/** @param conn
 	 * @param id */
 	private void doUpdateExtra(final Connection conn, final String id) throws Exception {
-
+		
 		MatExtra.update(this.server, conn, id);
 	}
-
+	
 	private final void doUpdateObject(final Connection conn, final Map<String, Object> task) throws Exception {
-
+		
 		final String guid = Convert.MapEntry.toString(task, "evtCmdGuid", "").trim();
 		this.doUpdateObject(conn, guid);
 	}
-
+	
 	private final void doUpdateObject(final Connection conn, final String guid) throws Exception {
-
+		
 		int count = 0;
 		if (conn.getMetaData().supportsUnionAll()) {
 			try (final PreparedStatement ps = conn.prepareStatement(
@@ -1285,9 +1285,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			MatChange.serializeInvalidation(this.storage, conn, InvalidationEventType.UIDEN, guid);
 		}
 	}
-
+	
 	private final boolean doUpgradeIndex(final Connection conn) throws Exception {
-
+		
 		final List<Map.Entry<String, Integer>> toUpgrade = new ArrayList<>();
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"SELECT t.lnkId,t.lnkLuid FROM s3Tree t,s3Indexed i WHERE t.lnkLuid=i.luid AND i.idxVersion<" + this.indexingVersion + " ORDER BY i.idxVersion ASC, t.lnkLuid DESC",
@@ -1311,9 +1311,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 		}
 		return true;
 	}
-
+	
 	private final void eventIndexed(final Connection conn, final int luid, final boolean created) throws SQLException {
-
+		
 		if (created && !this.failedLastEventIndexedCreate) {
 			try (final PreparedStatement ps = conn.prepareStatement("INSERT INTO s3Indexed(luid,idxVersion,lnkIndexed) VALUES (" + luid + "," + this.indexingVersion + ",?)")) {
 				ps.setTimestamp(1, new Timestamp(Engine.fastTime()));
@@ -1344,9 +1344,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			}
 		}
 	}
-
+	
 	private void fillTree(final Connection conn, final List<Object> list, final int luid) throws Exception {
-
+		
 		final List<Object> children = MatTree.children(conn, luid);
 		for (final Iterator<Object> i = children.iterator(); i.hasNext();) {
 			final Integer integer = (Integer) i.next();
@@ -1356,9 +1356,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			this.fillTree(conn, list, integer.intValue());
 		}
 	}
-
+	
 	private void fillTree(final Connection conn, final List<Object> list, final String lnkId) throws Exception {
-
+		
 		final List<Object> children = MatTree.children(conn, lnkId);
 		for (final Iterator<Object> i = children.iterator(); i.hasNext();) {
 			final Integer integer = (Integer) i.next();
@@ -1368,15 +1368,9 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			this.fillTree(conn, list, integer.intValue());
 		}
 	}
-
-	@Override
-	public int getVersion() {
-
-		return 36;
-	}
-
+	
 	private final void makeLost(final Connection conn, final LinkData entry, final boolean searchUpper) throws SQLException {
-
+		
 		final boolean drop;
 		try (final PreparedStatement ps = conn
 				.prepareStatement("SELECT count(*) FROM s3Tree t,s3Objects o WHERE t.objId=o.objId AND t.objId=?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
@@ -1440,11 +1434,17 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			change.commit();
 		}
 	}
-
+	
+	@Override
+	public int getVersion() {
+		
+		return 36;
+	}
+	
 	@SuppressWarnings("resource")
 	@Override
 	public void run() {
-
+		
 		if (this.destroyed) {
 			return;
 		}
@@ -1453,13 +1453,13 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 			conn = this.storage.nextConnection();
 			if (conn == null) {
 				if (!this.destroyed) {
-					Act.later(null, this, 10000L);
+					Act.later(null, this, 10_000L);
 				}
 				return;
 			}
 		} catch (final Throwable t) {
 			if (!this.destroyed) {
-				Act.later(null, this, 10000L);
+				Act.later(null, this, 10_000L);
 			}
 			return;
 		}
@@ -1609,30 +1609,30 @@ final class RunnerChangeUpdate implements Runnable, Runner {
 						null,
 						this,
 						highLoad
-							? 2500L
-							: 15000L);
+							? 2_500L
+							: 15_000L);
 			}
 		}
 	}
-
+	
 	@Override
 	public void start() {
-
+		
 		this.serverPresence.setUpdateInterest(true);
 		this.destroyed = false;
 		Act.later(null, this, 2500L);
 	}
-
+	
 	@Override
 	public void stop() {
-
+		
 		this.serverPresence.setUpdateInterest(false);
 		this.destroyed = true;
 	}
-
+	
 	@Override
 	public String toString() {
-
+		
 		return this.getClass().getSimpleName() + "(" + this.storage + ")";
 	}
 }

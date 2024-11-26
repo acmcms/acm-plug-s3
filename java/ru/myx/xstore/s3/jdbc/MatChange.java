@@ -20,11 +20,11 @@ import ru.myx.xstore.s3.concept.InvalidationEventType;
  *         To change the template for this generated type comment go to
  *         Window&gt;Preferences&gt;Java&gt;Code Generation&gt;Code and Comments */
 final class MatChange {
-
-	private static final long EXPIRE_EVENT = 1000L * 60L * 60L * 24L * 7L;
-
+	
+	private static final long EXPIRE_EVENT = 60_000L * 60L * 24L * 7L;
+	
 	static final void serialize(final ServerJdbc server, final Connection conn, final int sequence, final String type, final String guid, final int luid) throws SQLException {
-
+		
 		try (final PreparedStatement ps = conn.prepareStatement(
 				"INSERT INTO s3ChangeQueue(evtId,evtDate,evtSequence,evtOwner,evtCmdType,evtCmdGuid,evtCmdLuid) VALUES (?,?," + sequence + ",?,?,?," + luid + ")")) {
 			ps.setString(1, Engine.createGuid());
@@ -35,9 +35,9 @@ final class MatChange {
 			ps.execute();
 		}
 	}
-
+	
 	static final void serializeInvalidation(final StorageLevel3 server, final Connection conn, final InvalidationEventType type, final String guid) throws Exception {
-
+		
 		type.invalidateOn(server.getServerInterface(), guid);
 		try (final PreparedStatement ps = conn
 				.prepareStatement("INSERT INTO s3ChangeInfo(evtId,evtTarget,evtType,evtGuid,evtDate,evtExpire) SELECT ?,peerId,?,?,?,? FROM s3ChangePeer WHERE peerId!=?")) {
@@ -51,9 +51,9 @@ final class MatChange {
 			ps.execute();
 		}
 	}
-
+	
 	static final void serializeInvalidations(final StorageLevel3 server, final Connection conn, final InvalidationCollector invalidations) throws Exception {
-
+		
 		final Map<InvalidationEventType, Collection<String>> map = invalidations.getInvalidations();
 		if (map == null) {
 			return;

@@ -46,6 +46,12 @@ final class RunnerServerPresence implements Runnable, StatusFiller {
 			this.evtDateMax = evtDateMax;
 		}
 
+		@Override
+		public final String toString() {
+
+			return "(evtType=? AND evtGuid=? AND evtDate<=?)";
+		}
+
 		final int fillParameters(final PreparedStatement ps, final int baseIndex) throws SQLException {
 
 			ps.setString(baseIndex + 1, this.evtType);
@@ -53,23 +59,17 @@ final class RunnerServerPresence implements Runnable, StatusFiller {
 			ps.setTimestamp(baseIndex + 3, new Timestamp(this.evtDateMax + 1000L));
 			return 3;
 		}
-
-		@Override
-		public final String toString() {
-
-			return "(evtType=? AND evtGuid=? AND evtDate<=?)";
-		}
 	}
 
 	private static final String OWNER = "S3/PRESENCE";
 
 	private static final int LIMIT_BULK_TASKS = 128;
 
-	private static final long PERIOD_CUT_PEER_SERVER = 2L * 1000L * 60L * 60L * 24L;
+	private static final long PERIOD_CUT_PEER_SERVER = 2L * 60_000L * 60L * 24L;
 
-	private static final long PERIOD_CUT_PEER_CLIENT = 1L * 1000L * 60L * 60L * 24L;
+	private static final long PERIOD_CUT_PEER_CLIENT = 1L * 60_000L * 60L * 24L;
 
-	private static final long PERIOD_UPDATE_PEER = 15L * 1000L * 60L;
+	private static final long PERIOD_UPDATE_PEER = 15L * 60_000L;
 
 	private final StorageLevel3 storage;
 
@@ -127,13 +127,13 @@ final class RunnerServerPresence implements Runnable, StatusFiller {
 			conn = this.storage.nextConnection();
 			if (conn == null) {
 				if (!this.destroyed) {
-					Act.later(null, this, 10000L);
+					Act.later(null, this, 10_000L);
 				}
 				return;
 			}
 		} catch (final Throwable t) {
 			if (!this.destroyed) {
-				Act.later(null, this, 10000L);
+				Act.later(null, this, 10_000L);
 			}
 			return;
 		}
@@ -280,10 +280,25 @@ final class RunnerServerPresence implements Runnable, StatusFiller {
 						null,
 						this,
 						anyLoad
-							? 2500L
-							: 15000L);
+							? 2_500L
+							: 15_000L);
 			}
 		}
+	}
+
+	@Override
+	public final void statusFill(final StatusInfo data) {
+
+		data.put("PRESENCE, bulk task limit", Format.Compact.toDecimal(RunnerServerPresence.LIMIT_BULK_TASKS));
+		data.put("PRESENCE, peer updates", Format.Compact.toDecimal(this.stsPeerUpdates));
+		data.put("PRESENCE, processed requests", Format.Compact.toDecimal(this.stsProcessed));
+		data.put("PRESENCE, empty loops", Format.Compact.toDecimal(this.stsEmpty));
+	}
+
+	@Override
+	public String toString() {
+
+		return this.getClass().getSimpleName() + "(" + this.storage + ")";
 	}
 
 	void setUpdateInterest(final boolean update) {
@@ -297,23 +312,8 @@ final class RunnerServerPresence implements Runnable, StatusFiller {
 		Act.later(null, this, 1500L);
 	}
 
-	@Override
-	public final void statusFill(final StatusInfo data) {
-
-		data.put("PRESENCE, bulk task limit", Format.Compact.toDecimal(RunnerServerPresence.LIMIT_BULK_TASKS));
-		data.put("PRESENCE, peer updates", Format.Compact.toDecimal(this.stsPeerUpdates));
-		data.put("PRESENCE, processed requests", Format.Compact.toDecimal(this.stsProcessed));
-		data.put("PRESENCE, empty loops", Format.Compact.toDecimal(this.stsEmpty));
-	}
-
 	void stop() {
 
 		this.destroyed = true;
-	}
-
-	@Override
-	public String toString() {
-
-		return this.getClass().getSimpleName() + "(" + this.storage + ")";
 	}
 }

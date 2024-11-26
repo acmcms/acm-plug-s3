@@ -21,11 +21,11 @@ import ru.myx.xstore.s3.StorageLevel3;
 
 /** @author myx */
 public final class LinkData implements Comparable<LinkData> {
-	
+
 	private static final Value<BaseObject> EMPTY_MAP_REFERENCE = new ValueSimple<>(BaseObject.UNDEFINED);
-	
+
 	private static final String getLetter(final String letter) {
-		
+
 		for (int i = 0; i < letter.length(); ++i) {
 			final char c = letter.charAt(i);
 			if (Character.isLetterOrDigit(c)) {
@@ -34,112 +34,111 @@ public final class LinkData implements Comparable<LinkData> {
 		}
 		return null;
 	}
-
+	
 	/**
 	 *
 	 */
 	public boolean invalid = false;
-
+	
 	/**
 	 *
 	 */
 	public final String lnkId;
-
+	
 	/**
 	 *
 	 */
 	public int lnkLuid;
-
+	
 	/**
 	 *
 	 */
 	public String lnkCntId;
-
+	
 	/**
 	 *
 	 */
 	public String lnkName;
-
+	
 	/**
 	 *
 	 */
 	public boolean lnkFolder;
-
+	
 	/**
 	 *
 	 */
 	public String objId;
-
+	
 	/**
 	 *
 	 */
 	public String vrId;
-
+	
 	/**
 	 *
 	 */
 	public String letter;
-
+	
 	/**
 	 *
 	 */
 	public String objTitle;
-
+	
 	/**
 	 *
 	 */
 	public long objCreated;
-
+	
 	/**
 	 *
 	 */
 	public long objModified;
-
+	
 	/**
 	 *
 	 */
 	public String objOwner;
-
+	
 	/**
 	 *
 	 */
 	public String objType;
-
+	
 	/**
 	 *
 	 */
 	public int objState;
-
+	
 	/**
 	 *
 	 */
 	public boolean listable;
-
+	
 	/**
 	 *
 	 */
 	public boolean searchable;
-
+	
 	/**
 	 *
 	 */
 	public String extLink;
-
-	private boolean loadDone = false;
-
-	private LinkData loadResult = null;
-
-	private BaseObject dataMap = null;
-
-	private Value<BaseObject> dataReference = null;
 	
-	/** @param lnkId
-	 */
+	private boolean loadDone = false;
+	
+	private LinkData loadResult = null;
+	
+	private BaseObject dataMap = null;
+	
+	private Value<BaseObject> dataReference = null;
+
+	/** @param lnkId */
 	public LinkData(final String lnkId) {
-		
+
 		this.lnkId = lnkId;
 	}
-	
+
 	/** @param lnkId
 	 * @param lnkLuid
 	 * @param lnkCntId
@@ -155,8 +154,7 @@ public final class LinkData implements Comparable<LinkData> {
 	 * @param objState
 	 * @param listable
 	 * @param searchable
-	 * @param extLink
-	 */
+	 * @param extLink */
 	public LinkData(
 			final String lnkId,
 			final int lnkLuid,
@@ -174,7 +172,7 @@ public final class LinkData implements Comparable<LinkData> {
 			final boolean listable,
 			final boolean searchable,
 			final String extLink) {
-		
+
 		this.lnkId = lnkId;
 		this.lnkLuid = lnkLuid;
 		this.lnkCntId = lnkCntId;
@@ -200,7 +198,7 @@ public final class LinkData implements Comparable<LinkData> {
 			this.invalid = true;
 		}
 	}
-	
+
 	/** @param lnkId
 	 * @param lnkLuid
 	 * @param lnkCntId
@@ -216,8 +214,7 @@ public final class LinkData implements Comparable<LinkData> {
 	 * @param objState
 	 * @param listable
 	 * @param searchable
-	 * @param extLink
-	 */
+	 * @param extLink */
 	public LinkData(
 			final String lnkId,
 			final int lnkLuid,
@@ -235,7 +232,7 @@ public final class LinkData implements Comparable<LinkData> {
 			final boolean listable,
 			final boolean searchable,
 			final String extLink) {
-		
+
 		this.lnkId = lnkId;
 		this.lnkLuid = lnkLuid;
 		this.lnkCntId = lnkCntId;
@@ -259,18 +256,18 @@ public final class LinkData implements Comparable<LinkData> {
 			this.invalid = true;
 		}
 	}
-	
+
 	@Override
 	public final int compareTo(final LinkData arg0) {
-		
+
 		return this.lnkId.compareTo(arg0.lnkId);
 	}
-	
+
 	/** @param storage
 	 * @param typeNameOverride
 	 * @return map */
 	public final BaseObject getData(final StorageLevel3 storage, final String typeNameOverride) {
-		
+
 		if (this.dataMap == null) {
 			synchronized (this) {
 				if (this.dataMap == null) {
@@ -292,12 +289,12 @@ public final class LinkData implements Comparable<LinkData> {
 		}
 		return this.dataMap;
 	}
-	
+
 	/** @param storage
 	 * @param attachment
 	 * @return data */
 	public final BaseObject getDataReal(final StorageLevel3 storage, final Connection attachment) {
-		
+
 		BaseObject data;
 		try {
 			data = this.dataReference == null
@@ -348,10 +345,10 @@ public final class LinkData implements Comparable<LinkData> {
 		}
 		return data;
 	}
-	
+
 	/** @return linkData */
 	public final LinkData getLoadValue() {
-		
+
 		if (this.loadDone) {
 			return this.loadResult;
 		}
@@ -381,7 +378,7 @@ public final class LinkData implements Comparable<LinkData> {
 					 * Item 50 in Joshua Bloch's "Effective Java Programming Language Guide"
 					 * (Addison-Wesley, 2001). */
 					for (//
-							long left = 30000L, expires = Engine.fastTime() + left; //
+							long left = 30_000L, expires = Engine.fastTime() + left; //
 							left > 0; //
 							left = expires - Engine.fastTime()) {
 						//
@@ -413,48 +410,46 @@ public final class LinkData implements Comparable<LinkData> {
 		this.loadDone = true;
 		return result;
 	}
-	
+
 	/** @return result */
 	public final boolean getVersioning() {
-		
+
 		return !"*".equals(this.vrId);
 	}
-	
+
 	/**
 	 */
 	public final void invalidateThis() {
-		
+
 		this.dataReference = null;
 		this.dataMap = null;
 	}
-	
-	/** @param data
-	 */
+
+	/** @param data */
 	public final void setDataReal(final BaseObject data) {
-		
+
 		this.dataReference = new ValueSimple<>(data);
 		this.dataMap = null;
 	}
-	
-	/** @param link
-	 */
+
+	/** @param link */
 	public final void setDuplicateOf(final LinkData link) {
-		
+
 		assert link != this : "Duplicate of itself?";
 		this.loadResult = link;
 		Act.launchNotifyAll(this);
 	}
-	
+
 	/**
 	 *
 	 */
 	public void setLoadNotFound() {
-		
+
 		// this.loadResult = null;
 		this.loadDone = true;
 		Act.launchNotifyAll(this);
 	}
-	
+
 	/** @param lnkLuid
 	 * @param lnkCntId
 	 * @param lnkName
@@ -469,8 +464,7 @@ public final class LinkData implements Comparable<LinkData> {
 	 * @param objState
 	 * @param listable
 	 * @param searchable
-	 * @param extLink
-	 */
+	 * @param extLink */
 	public final void setLoadResult(final int lnkLuid,
 			final String lnkCntId,
 			final String lnkName,
@@ -486,7 +480,7 @@ public final class LinkData implements Comparable<LinkData> {
 			final boolean listable,
 			final boolean searchable,
 			final String extLink) {
-		
+
 		this.lnkLuid = lnkLuid;
 		this.lnkCntId = lnkCntId;
 		this.lnkName = lnkName;
@@ -507,10 +501,10 @@ public final class LinkData implements Comparable<LinkData> {
 		this.loadDone = true;
 		Act.launchNotifyAll(this);
 	}
-	
+
 	@Override
 	public String toString() {
-		
+
 		return "LinkData{folder=" + this.lnkCntId + ", name=" + this.lnkName + ", type=" + this.objType + "}";
 	}
 }

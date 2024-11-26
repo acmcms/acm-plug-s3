@@ -9,17 +9,14 @@ import java.util.ConcurrentModificationException;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.function.Function;
 
 import ru.myx.ae3.act.Act;
-import java.util.function.Function;
 import ru.myx.ae3.act.ActService;
 import ru.myx.ae3.exec.Exec;
 import ru.myx.ae3.report.Report;
 
-/**
- * @author myx
- *
- */
+/** @author myx */
 public final class CleanerTask implements ActService, Function<ServerLocal, Boolean> {
 	
 	/**
@@ -41,6 +38,7 @@ public final class CleanerTask implements ActService, Function<ServerLocal, Bool
 	private boolean destroyed = false;
 	
 	private CleanerTask() {
+
 		// ignore
 	}
 	
@@ -83,7 +81,7 @@ public final class CleanerTask implements ActService, Function<ServerLocal, Bool
 					}
 				} catch (final ConcurrentModificationException e) {
 					try {
-						Thread.sleep(1000L);
+						Thread.sleep(1_000L);
 					} catch (final InterruptedException ee) {
 						return false;
 					}
@@ -92,7 +90,7 @@ public final class CleanerTask implements ActService, Function<ServerLocal, Bool
 			}
 		}
 		try {
-			Thread.sleep(20000L);
+			Thread.sleep(20_000L);
 		} catch (final InterruptedException e) {
 			return false;
 		}
