@@ -39,12 +39,20 @@ final class RunnerLinkLoader implements ActService {
 			builder.append(',');
 		}
 		builder.append('\'');
-		for (int i = 0; i < length; ++i) {
+		loop : for (int i = 0; i < length; ++i) {
 			final char c = parameter.charAt(i);
 			if (c == '\'') {
-				builder.append(c);
+				builder.append(c).append(c);
+				continue loop;
 			}
-			builder.append(c);
+			if (c == 0) {
+				builder.append('\'');
+				return false;
+			}
+			{
+				builder.append(c);
+				continue loop;
+			}
 		}
 		builder.append('\'');
 		return false;
@@ -59,14 +67,6 @@ final class RunnerLinkLoader implements ActService {
 	RunnerLinkLoader(final ServerJdbc server) {
 
 		this.server = server;
-	}
-
-	final void add(final LinkData record) {
-
-		if (this.destroyed) {
-			throw new IllegalStateException("Link loader is already destroyed!");
-		}
-		this.queue.offerLast(record);
 	}
 
 	@Override
@@ -195,5 +195,13 @@ final class RunnerLinkLoader implements ActService {
 			}
 		}
 		return !this.destroyed;
+	}
+
+	final void add(final LinkData record) {
+
+		if (this.destroyed) {
+			throw new IllegalStateException("Link loader is already destroyed!");
+		}
+		this.queue.offerLast(record);
 	}
 }
