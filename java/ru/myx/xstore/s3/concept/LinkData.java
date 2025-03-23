@@ -34,103 +34,103 @@ public final class LinkData implements Comparable<LinkData> {
 		}
 		return null;
 	}
-	
+
 	/**
 	 *
 	 */
 	public boolean invalid = false;
-	
+
 	/**
 	 *
 	 */
 	public final String lnkId;
-	
+
 	/**
 	 *
 	 */
 	public int lnkLuid;
-	
+
 	/**
 	 *
 	 */
 	public String lnkCntId;
-	
+
 	/**
 	 *
 	 */
 	public String lnkName;
-	
+
 	/**
 	 *
 	 */
 	public boolean lnkFolder;
-	
+
 	/**
 	 *
 	 */
 	public String objId;
-	
+
 	/**
 	 *
 	 */
 	public String vrId;
-	
+
 	/**
 	 *
 	 */
 	public String letter;
-	
+
 	/**
 	 *
 	 */
 	public String objTitle;
-	
+
 	/**
 	 *
 	 */
 	public long objCreated;
-	
+
 	/**
 	 *
 	 */
 	public long objModified;
-	
+
 	/**
 	 *
 	 */
 	public String objOwner;
-	
+
 	/**
 	 *
 	 */
 	public String objType;
-	
+
 	/**
 	 *
 	 */
 	public int objState;
-	
+
 	/**
 	 *
 	 */
 	public boolean listable;
-	
+
 	/**
 	 *
 	 */
 	public boolean searchable;
-	
+
 	/**
 	 *
 	 */
 	public String extLink;
-	
+
 	private boolean loadDone = false;
-	
+
 	private LinkData loadResult = null;
-	
+
 	private BaseObject dataMap = null;
-	
+
 	private Value<BaseObject> dataReference = null;
 
 	/** @param lnkId */
@@ -301,7 +301,12 @@ public final class LinkData implements Comparable<LinkData> {
 				? null
 				: this.dataReference.baseValue();
 		} catch (final ConcurrentModificationException e) {
-			assert Report.MODE_DEBUG && Report.exception("S3-LINK-DATA", "descr=" + this.toString(), "Cache entry looks to be deleted concurrently, trying to recover", e);
+			assert Report.MODE_DEBUG && Report.exception(//
+					"S3-LINK-DATA",
+					"descr=" + this.toString(),
+					"Cache data entry seems to be deleted concurrently, trying to recover",
+					new Error(e)//
+			);
 			data = null;
 		}
 		if (data == null) {
@@ -311,7 +316,12 @@ public final class LinkData implements Comparable<LinkData> {
 						? null
 						: this.dataReference.baseValue();
 				} catch (final ConcurrentModificationException e) {
-					assert Report.MODE_DEBUG && Report.exception("S3-LINK-DATA", "descr=" + this.toString(), "Cache entry looks to be deleted concurrently, trying to recover", e);
+					assert Report.MODE_DEBUG && Report.exception(//
+							"S3-LINK-DATA",
+							"descr=" + this.toString(),
+							"Cache data entry seems to be deleted concurrently in sync, trying to recover",
+							new Error(e)//
+					);
 					data = null;
 				}
 				if (data == null) {

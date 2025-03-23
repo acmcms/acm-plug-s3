@@ -46,7 +46,7 @@ import ru.myx.xstore.s3.concept.TreeData;
 
 /** @author myx */
 public final class ServerJdbc implements StorageNetwork {
-
+	
 	private static final Map<String, String> FINDER_REPLACEMENT_FIELDS;
 	static {
 		final Map<String, String> result = new HashMap<>();
@@ -57,140 +57,139 @@ public final class ServerJdbc implements StorageNetwork {
 		result.put("$type", "o.objType");
 		FINDER_REPLACEMENT_FIELDS = result;
 	}
-
+	
 	private final boolean client;
-
+	
 	private IndexingFinder currentFinder;
-
+	
 	private Indexing currentIndexing;
-
+	
 	private ModuleSchedule currentScheduling;
-
+	
 	private ModuleSynchronizer currentSynchronizer;
-
+	
 	private final String identity;
-
+	
 	private final DictionaryJdbc indexingDictionary;
-
+	
 	private final Object issuer = new Object();
-
+	
 	private RunnerLinkLoader linkLoader;
-
+	
 	private LockManager lockManager;
-
+	
 	private final boolean scheduling;
-
+	
 	private RunnerDatabaseRequestor searchLoader;
-
+	
 	private RunnerServerPresence serverPresence;
-
+	
 	private final StorageLevel3 storage;
-
+	
 	int stsExternalsUpdated = 0;
-
+	
 	private int stsGetAliasesAttempted;
-
+	
 	private int stsGetExternalAttempted;
-
+	
 	private int stsGetLinkAttempted;
-
+	
 	private int stsGetTreeAttempted;
-
+	
 	private int stsHasExternalAttempted;
-
+	
 	private int stsHasExternalItemsAttempted;
-
+	
 	private int stsHasExternalsAttempted;
-
+	
 	int stsLoadExternal = 0;
-
+	
 	int stsLoadExternalFailed = 0;
-
+	
 	int stsLoadExternalPlain = 0;
-
+	
 	int stsLoadExternalTry = 0;
-
+	
 	int stsLoadExternalUngzip = 0;
-
+	
 	int stsLoadExternalUnknown = 0;
-
+	
 	private int stsPutExternalAttempted;
-
+	
 	private int stsSearchAttempted;
-
+	
 	private int stsSearchEmptyAttempted;
-
+	
 	private int stsSearchItemAttempted;
-
+	
 	private int stsSearchTimedOut;
-
+	
 	private int stsSearchCalendarAttempted;
-
+	
 	private int stsSearchCalendarEmptyAttempted;
-
+	
 	private int stsSearchCalendarItemAttempted;
-
+	
 	private int stsSearchIdentityAttempted;
-
+	
 	private int stsSearchLinksAttempted;
-
+	
 	private int stsSearchLocalAttempted;
-
+	
 	private int stsTransactionsAttempted;
-
+	
 	int stsTransactionsCommited;
-
+	
 	private int stsTransactionsCreated;
-
+	
 	int stsTransactionsRollbacks;
-
+	
 	private RunnerTreeLoader treeLoader;
-
+	
 	final Set<String> updateExtra = Create.tempSet();
-
+	
 	Counter stsTransactionTime = new Counter();
-
+	
 	private int stsGetObjectHistory = 0;
-
+	
 	private int stsGetObjectHistorySnapshot = 0;
-
+	
 	private int stsGetObjectVersionSnapshot = 0;
-
+	
 	private int stsGetObjectVersions = 0;
-
+	
 	private int stsGetRecycledList;
-
+	
 	private int stsGetRecycledObject;
-
+	
 	/** @param storage
 	 * @param identity
 	 * @param scheduling
-	 * @param client
-	 */
+	 * @param client */
 	public ServerJdbc(final StorageLevel3 storage, final String identity, final boolean scheduling, final boolean client) {
-
+		
 		this.storage = storage;
 		this.identity = identity;
 		this.client = client;
 		this.scheduling = scheduling;
 		this.indexingDictionary = new DictionaryJdbc(storage);
 	}
-
+	
 	@Override
 	public final boolean addInterest(final Interest interest) {
-
+		
 		return this.lockManager.addInterest(interest);
 	}
-
+	
 	@Override
 	public final boolean areSynchronizationsSupported() {
-
+		
 		return true;
 	}
-
+	
 	@Override
 	public final void clearAllRecycled() {
-
+		
 		try (final Connection conn = this.storage.nextConnection()) {
 			if (conn == null) {
 				throw new RuntimeException("Database is not available!");
@@ -207,24 +206,22 @@ public final class ServerJdbc implements StorageNetwork {
 				}
 				throw t;
 			}
-		} catch (final Error e) {
-			throw e;
-		} catch (final RuntimeException e) {
+		} catch (final Error | RuntimeException e) {
 			throw e;
 		} catch (final Throwable t) {
 			throw new RuntimeException(t);
 		}
 	}
-
+	
 	@Override
 	public final Locker createLock(final String guid, final int version) {
-
+		
 		return this.lockManager.createLock(guid, version);
 	}
-
+	
 	@Override
 	public final Transaction createTransaction() {
-
+		
 		this.stsTransactionsAttempted++;
 		final Connection conn = this.storage.nextConnection();
 		if (conn == null) {
@@ -238,64 +235,64 @@ public final class ServerJdbc implements StorageNetwork {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public void enqueueTask(final RequestAttachment<?, RunnerDatabaseRequestor> task) {
-
+		
 		this.searchLoader.add(task);
 	}
-
+	
 	@Override
 	public final String[] getAliases(final String lnkId) {
-
+		
 		this.stsGetAliasesAttempted++;
 		final RequestAliases request = new RequestAliases(lnkId);
 		this.searchLoader.add(request);
 		return request.baseValue();
 	}
-
+	
 	@Override
 	public final IndexingFinder getFinder() {
-
+		
 		return this.currentFinder;
 	}
-
+	
 	@Override
 	public final String getIdentity() {
-
+		
 		return this.identity;
 	}
-
+	
 	@Override
 	public final IndexingDictionary getIndexingDictionary() {
-
+		
 		return this.indexingDictionary;
 	}
-
+	
 	@Override
 	public final IndexingStemmer getIndexingStemmer() {
-
+		
 		return IndexingStemmer.SIMPLE_STEMMER;
 	}
-
+	
 	@Override
 	public final Object getIssuer() {
-
+		
 		return this.issuer;
 	}
-
+	
 	@Override
 	public final LinkData getLink(final String guid) throws Exception {
-
+		
 		this.stsGetLinkAttempted++;
 		final LinkData result = new LinkData(guid);
 		this.linkLoader.add(result);
 		return result.getLoadValue();
 	}
-
+	
 	@Override
 	public final BaseHistory[] getObjectHistory(final String objId) {
-
+		
 		this.stsGetObjectHistory++;
 		try (final Connection conn = this.storage.nextConnection()) {
 			if (conn == null) {
@@ -308,10 +305,10 @@ public final class ServerJdbc implements StorageNetwork {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public final LinkData getObjectHistorySnapshot(final String lnkId, final String historyId) {
-
+		
 		this.stsGetObjectHistorySnapshot++;
 		try (final Connection conn = this.storage.nextConnection()) {
 			if (conn == null) {
@@ -328,10 +325,10 @@ public final class ServerJdbc implements StorageNetwork {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public final LinkData getObjectVersion(final String lnkId, final String objId, final String versionId) {
-
+		
 		this.stsGetObjectVersionSnapshot++;
 		try (final Connection conn = this.storage.nextConnection()) {
 			if (conn == null) {
@@ -353,10 +350,10 @@ public final class ServerJdbc implements StorageNetwork {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public final BaseVersion[] getObjectVersions(final String objId) {
-
+		
 		this.stsGetObjectVersions++;
 		try (final Connection conn = this.storage.nextConnection()) {
 			if (conn == null) {
@@ -369,10 +366,10 @@ public final class ServerJdbc implements StorageNetwork {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public final BaseRecycled[] getRecycled() {
-
+		
 		this.stsGetRecycledList++;
 		try (final Connection conn = this.storage.nextConnection()) {
 			if (conn == null) {
@@ -385,10 +382,10 @@ public final class ServerJdbc implements StorageNetwork {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public final BaseRecycled getRecycledByGuid(final String guid) {
-
+		
 		this.stsGetRecycledObject++;
 		try (final Connection conn = this.storage.nextConnection()) {
 			if (conn == null) {
@@ -401,46 +398,31 @@ public final class ServerJdbc implements StorageNetwork {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public final ModuleSchedule getScheduling() {
-
+		
 		return this.currentScheduling;
 	}
-
-	final StorageLevel3 getStorage() {
-
-		return this.storage;
-	}
-
-	ExternalHandler getStorageExternalizerObject() {
-
-		return this.storage.getServerInterface().getExternalizerObject();
-	}
-
-	ExternalHandler getStorageExternalizerReference() {
-
-		return this.storage.getServerInterface().getExternalizerReference();
-	}
-
+	
 	@Override
 	public final ModuleSynchronizer getSynchronizer() {
-
+		
 		return this.currentSynchronizer;
 	}
-
+	
 	@Override
 	public final TreeData getTree(final String guid) throws Exception {
-
+		
 		this.stsGetTreeAttempted++;
 		final TreeData result = new TreeData(guid);
 		this.treeLoader.add(result);
 		return result.baseValue();
 	}
-
+	
 	@Override
 	public final boolean hasExternal(final Object attachment, final String identifier) throws Exception {
-
+		
 		this.stsHasExternalAttempted++;
 		this.stsHasExternalItemsAttempted++;
 		if (attachment != null) {
@@ -452,20 +434,20 @@ public final class ServerJdbc implements StorageNetwork {
 		this.searchLoader.add(request);
 		return Boolean.TRUE == request.baseValue();
 	}
-
+	
 	@Override
 	public Set<String> hasExternals(final Set<String> guids) {
-
+		
 		this.stsHasExternalsAttempted++;
 		this.stsHasExternalItemsAttempted++;
 		final RequestHasExternals request = new RequestHasExternals(guids);
 		this.searchLoader.add(request);
 		return request.baseValue();
 	}
-
+	
 	@Override
 	public final boolean loadExternal(final Object attachment, final String identifier, final TargetExternal target) throws Exception {
-
+		
 		this.stsGetExternalAttempted++;
 		if (attachment != null) {
 			if (attachment instanceof StoreInfo) {
@@ -480,10 +462,10 @@ public final class ServerJdbc implements StorageNetwork {
 		this.searchLoader.add(request);
 		return Boolean.TRUE == request.baseValue();
 	}
-
+	
 	@Override
 	public final String putExternal(final Object attachment, final String key, final String type, final TransferCopier copier) throws Exception {
-
+		
 		this.stsPutExternalAttempted++;
 		if (attachment != null) {
 			final String identity = Engine.createGuid();
@@ -494,52 +476,52 @@ public final class ServerJdbc implements StorageNetwork {
 		}
 		throw new RuntimeException("StoreInfo is not available!");
 	}
-
+	
 	@Override
 	public final boolean removeInterest(final Interest interest) {
-
+		
 		return this.lockManager.removeInterest(interest);
 	}
-
+	
 	@Override
 	public final Map.Entry<String, Object>[]
 			search(final String lnkId, final int limit, final boolean all, final long timeout, final String sort, final long dateStart, final long dateEnd, final String filter) {
-
+		
 		final RequestSearch attachment = new RequestSearch(this.currentFinder, lnkId, limit, all, timeout, sort, dateStart, dateEnd, filter);
 		return attachment.doSearch(this);
 	}
-
+	
 	@Override
 	public final LinkData[] searchIdentity(final String guid) throws Exception {
-
+		
 		this.stsSearchIdentityAttempted++;
 		final RequestSearchIdentity request = new RequestSearchIdentity(guid);
 		this.searchLoader.add(request);
 		return request.baseValue();
 	}
-
+	
 	@Override
 	public final LinkData[] searchLinks(final String guid) throws Exception {
-
+		
 		this.stsSearchLinksAttempted++;
 		final RequestSearchLinks request = new RequestSearchLinks(guid);
 		this.searchLoader.add(request);
 		return request.baseValue();
 	}
-
+	
 	@Override
 	public final LinkData[] searchLocal(final String lnkId, final String condition) {
-
+		
 		this.stsSearchLocalAttempted++;
 		final String key = new StringBuilder().append(lnkId).append('\n').append(condition).toString();
 		final RequestSearchLocal request = new RequestSearchLocal(key, lnkId, condition);
 		this.searchLoader.add(request);
 		return request.baseValue();
 	}
-
+	
 	@Override
 	public final void start() {
-
+		
 		this.currentSynchronizer = new SynchronizerJdbc(this);
 		final StorageLevel3 storage = this.storage;
 		this.currentIndexing = new Indexing(storage.getIndexingStemmer(), storage.getIndexingDictionary(), "s3Indices");
@@ -565,71 +547,71 @@ public final class ServerJdbc implements StorageNetwork {
 			}
 			this.lockManager.start(this.identity);
 		}
-
+		
 		this.linkLoader = new RunnerLinkLoader(this);
 		Act.launchService(Exec.createProcess(null, "LINK: " + this.toString()), this.linkLoader);
-
+		
 		this.treeLoader = new RunnerTreeLoader(storage.getServer().getZoneId(), storage.getConnectionSource());
 		Act.launchService(Exec.createProcess(null, "TREE: " + this.toString()), this.treeLoader);
-
+		
 		this.searchLoader = new RunnerDatabaseRequestor("SEARCHER", storage.getConnectionSource());
 		Act.launchService(Exec.createProcess(null, "SEARCH: " + this.toString()), this.searchLoader);
-
+		
 	}
-
+	
 	@Override
 	public final void start(final String identity) {
-
+		
 		this.lockManager.start(identity);
 		/** FIXME: wtf? why service is started twice?! it is already started in start() */
 		Act.launchService(Exec.createProcess(null, "LINK2: " + this.toString()), this.linkLoader);
 	}
-
+	
 	@Override
 	public void statIncrementSearch() {
-
+		
 		this.stsSearchAttempted++;
 	}
-
+	
 	@Override
 	public void statIncrementSearchCalendar() {
-
+		
 		this.stsSearchCalendarAttempted++;
 	}
-
+	
 	@Override
 	public void statIncrementSearchCalendarEmpty() {
-
+		
 		this.stsSearchCalendarEmptyAttempted++;
 	}
-
+	
 	@Override
 	public void statIncrementSearchCalendarItem() {
-
+		
 		this.stsSearchCalendarItemAttempted++;
 	}
-
+	
 	@Override
 	public void statIncrementSearchEmpty() {
-
+		
 		this.stsSearchEmptyAttempted++;
 	}
-
+	
 	@Override
 	public void statIncrementSearchItem() {
-
+		
 		this.stsSearchItemAttempted++;
 	}
-
+	
 	@Override
 	public void statIncrementSearchTimeout() {
-
+		
 		this.stsSearchTimedOut++;
 	}
-
+	
 	@Override
 	public final void statusFill(final StatusInfo data) {
-
+		
 		data.put("NET, identity", this.identity);
 		data.put("NET, transactions attempted", Format.Compact.toDecimal(this.stsTransactionsAttempted));
 		data.put("NET, transactions created", Format.Compact.toDecimal(this.stsTransactionsCreated));
@@ -671,7 +653,7 @@ public final class ServerJdbc implements StorageNetwork {
 		data.put("NET-EXTR, load external failed", Format.Compact.toDecimal(this.stsLoadExternalFailed));
 		data.put("NET-EXTR, externals updated", Format.Compact.toDecimal(this.stsExternalsUpdated));
 		data.put("NET-EXTR, update external queue", Format.Compact.toDecimal(this.updateExtra.size()));
-
+		
 		{
 			final StatusFiller provider = this.indexingDictionary;
 			if (provider != null) {
@@ -697,10 +679,10 @@ public final class ServerJdbc implements StorageNetwork {
 			}
 		}
 	}
-
+	
 	@Override
 	public final void stop() {
-
+		
 		if (this.searchLoader != null) {
 			this.searchLoader.stop();
 			this.searchLoader = null;
@@ -722,23 +704,38 @@ public final class ServerJdbc implements StorageNetwork {
 			this.lockManager = null;
 		}
 	}
-
+	
 	@Override
 	public final void stop(final String identity) {
-
+		
 		this.lockManager.stop(identity);
 		this.linkLoader.stop();
 	}
-
+	
 	@Override
 	public String toString() {
-
+		
 		return "ServerJdbc [identity=" + this.identity + ", storage=" + this.storage + "]";
 	}
-
+	
+	final StorageLevel3 getStorage() {
+		
+		return this.storage;
+	}
+	
+	ExternalHandler getStorageExternalizerObject() {
+		
+		return this.storage.getServerInterface().getExternalizerObject();
+	}
+	
+	ExternalHandler getStorageExternalizerReference() {
+		
+		return this.storage.getServerInterface().getExternalizerReference();
+	}
+	
 	void updateExtra(final String recId) {
-
+		
 		this.updateExtra.add(recId);
 	}
-
+	
 }

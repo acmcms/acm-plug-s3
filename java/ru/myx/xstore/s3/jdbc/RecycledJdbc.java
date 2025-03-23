@@ -14,21 +14,21 @@ import ru.myx.xstore.s3.concept.InvalidationEventType;
  *
  *         Window - Preferences - Java - Code Style - Code Templates */
 final class RecycledJdbc implements BaseRecycled {
-
+	
 	private final long date;
-
+	
 	private final String folder;
-
+	
 	private final String guid;
-
+	
 	private final String owner;
-
+	
 	private final ServerJdbc server;
-
+	
 	private final String title;
-
+	
 	RecycledJdbc(final ServerJdbc server, final String guid, final long date, final String title, final String folder, final String owner) {
-
+		
 		this.server = server;
 		this.guid = guid;
 		this.date = date;
@@ -36,22 +36,22 @@ final class RecycledJdbc implements BaseRecycled {
 		this.folder = folder;
 		this.owner = owner;
 	}
-
+	
 	@Override
 	public boolean canClean() {
-
+		
 		return true;
 	}
-
+	
 	@Override
 	public boolean canMove() {
-
+		
 		return true;
 	}
-
+	
 	@Override
 	public boolean canRestore() {
-
+		
 		try {
 			return this.server.getLink(this.folder) != null;
 		} catch (final RuntimeException e) {
@@ -60,10 +60,10 @@ final class RecycledJdbc implements BaseRecycled {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	@Override
 	public void doClean() {
-
+		
 		try (final Connection conn = this.server.getStorage().nextConnection()) {
 			try {
 				conn.setAutoCommit(false);
@@ -77,18 +77,16 @@ final class RecycledJdbc implements BaseRecycled {
 				}
 				throw t;
 			}
-		} catch (final Error e) {
-			throw e;
-		} catch (final RuntimeException e) {
+		} catch (final Error | RuntimeException e) {
 			throw e;
 		} catch (final Throwable t) {
 			throw new RuntimeException(t);
 		}
 	}
-
+	
 	@Override
 	public void doMove(final String parentGuid) {
-
+		
 		try (final Connection conn = this.server.getStorage().nextConnection()) {
 			try {
 				conn.setAutoCommit(false);
@@ -105,18 +103,16 @@ final class RecycledJdbc implements BaseRecycled {
 				}
 				throw t;
 			}
-		} catch (final Error e) {
-			throw e;
-		} catch (final RuntimeException e) {
+		} catch (final Error | RuntimeException e) {
 			throw e;
 		} catch (final Throwable t) {
 			throw new RuntimeException(t);
 		}
 	}
-
+	
 	@Override
 	public void doRestore() {
-
+		
 		try (final Connection conn = this.server.getStorage().nextConnection()) {
 			try {
 				conn.setAutoCommit(false);
@@ -133,42 +129,40 @@ final class RecycledJdbc implements BaseRecycled {
 				}
 				throw t;
 			}
-		} catch (final Error e) {
-			throw e;
-		} catch (final RuntimeException e) {
+		} catch (final Error | RuntimeException e) {
 			throw e;
 		} catch (final Throwable t) {
 			throw new RuntimeException(t);
 		}
 	}
-
+	
 	@Override
 	public long getDate() {
-
+		
 		return this.date;
 	}
-
+	
 	@Override
 	public String getFolder() {
-
+		
 		return this.folder;
 	}
-
+	
 	@Override
 	public String getGuid() {
-
+		
 		return this.guid;
 	}
-
+	
 	@Override
 	public String getOwner() {
-
+		
 		return this.owner;
 	}
-
+	
 	@Override
 	public String getTitle() {
-
+		
 		return this.title;
 	}
 }

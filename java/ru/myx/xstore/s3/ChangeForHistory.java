@@ -264,10 +264,7 @@ class ChangeForHistory extends ChangeAbstract {
 		try {
 			transaction.delete(this.entry.getLink(), soft);
 			transaction.commit();
-		} catch (final Error e) {
-			transaction.rollback();
-			throw e;
-		} catch (final RuntimeException e) {
+		} catch (final Error | RuntimeException e) {
 			transaction.rollback();
 			throw e;
 		} catch (final Throwable t) {
@@ -354,12 +351,6 @@ class ChangeForHistory extends ChangeAbstract {
 	public String getParentGuid() {
 		
 		return this.entry.getParentGuid();
-	}
-	
-	@Override
-	protected StorageImpl getPlugin() {
-		
-		return this.entry.getStorageImpl();
 	}
 	
 	@Override
@@ -484,15 +475,18 @@ class ChangeForHistory extends ChangeAbstract {
 			final LinkData link = this.entry.getLink();
 			transaction.unlink(link, soft);
 			transaction.commit();
-		} catch (final Error e) {
-			transaction.rollback();
-			throw e;
-		} catch (final RuntimeException e) {
+		} catch (final Error | RuntimeException e) {
 			transaction.rollback();
 			throw e;
 		} catch (final Throwable t) {
 			transaction.rollback();
 			throw new RuntimeException(t);
 		}
+	}
+	
+	@Override
+	protected StorageImpl getPlugin() {
+		
+		return this.entry.getStorageImpl();
 	}
 }
